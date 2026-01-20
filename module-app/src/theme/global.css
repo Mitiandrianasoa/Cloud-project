@@ -1,0 +1,321 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* Variables de couleur pastel */
+:root {
+  --primary: #A8D8EA;    /* Bleu pastel doux */
+  --primary-rgb: 168, 216, 234;
+  --secondary: #AA96DA;  /* Violet pastel */
+  --secondary-rgb: 170, 150, 218;
+  --accent: #FFD3B6;     /* Pêche pastel */
+  --accent-rgb: 255, 211, 182;
+  --success: #B5EAD7;    /* Vert pastel */
+  --success-rgb: 181, 234, 215;
+  --warning: #FFAAA5;    /* Rose pastel */
+  --warning-rgb: 255, 170, 165;
+  --light: #FFF9F9;      /* Blanc cassé */
+  --light-rgb: 255, 249, 249;
+  --dark: #6C757D;       /* Gris doux */
+  --dark-rgb: 108, 117, 125;
+  --text: #5D5D5D;       /* Texte gris foncé */
+  --text-rgb: 93, 93, 93;
+}
+
+/* Styles de base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  font-family: 'Poppins', sans-serif;
+  color: var(--text);
+  background-color: var(--light);
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Reset Ionic */
+ion-app {
+  background: var(--light);
+}
+
+/* Classes utilitaires */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+
+.gap-1 { gap: 0.5rem; }
+.gap-2 { gap: 1rem; }
+.gap-3 { gap: 1.5rem; }
+.gap-4 { gap: 2rem; }
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mt-4 { margin-top: 2rem; }
+
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 2rem; }
+
+.p-1 { padding: 0.5rem; }
+.p-2 { padding: 1rem; }
+.p-3 { padding: 1.5rem; }
+.p-4 { padding: 2rem; }
+
+.rounded-sm { border-radius: 8px; }
+.rounded-md { border-radius: 12px; }
+.rounded-lg { border-radius: 16px; }
+.rounded-xl { border-radius: 20px; }
+.rounded-full { border-radius: 9999px; }
+
+.shadow-sm { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); }
+.shadow-md { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); }
+.shadow-lg { box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12); }
+
+/* Boutons personnalisés */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(170, 150, 218, 0.4);
+}
+
+.btn-secondary {
+  background: var(--light);
+  color: var(--text);
+  border: 2px solid rgba(170, 150, 218, 0.3);
+}
+
+.btn-secondary:hover {
+  border-color: var(--secondary);
+  background: rgba(170, 150, 218, 0.1);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-warning {
+  background: var(--warning);
+  color: white;
+}
+
+.btn-success {
+  background: var(--success);
+  color: white;
+}
+
+/* Cartes */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(170, 150, 218, 0.1);
+}
+
+.card-header {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(170, 150, 218, 0.1);
+}
+
+.card-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 1.2rem;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  gap: 5px;
+}
+
+.badge-primary {
+  background: rgba(var(--primary-rgb), 0.2);
+  color: var(--primary);
+}
+
+.badge-secondary {
+  background: rgba(var(--secondary-rgb), 0.2);
+  color: var(--secondary);
+}
+
+.badge-accent {
+  background: rgba(var(--accent-rgb), 0.2);
+  color: #FF8A65;
+}
+
+.badge-success {
+  background: rgba(var(--success-rgb), 0.2);
+  color: #06D6A0;
+}
+
+.badge-warning {
+  background: rgba(var(--warning-rgb), 0.2);
+  color: #FF6B6B;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.slide-left {
+  animation: slideInLeft 0.4s ease forwards;
+}
+
+.slide-right {
+  animation: slideInRight 0.4s ease forwards;
+}
+
+/* Loader */
+.loader {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(170, 150, 218, 0.2);
+  border-top-color: var(--secondary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--light);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(170, 150, 218, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(170, 150, 218, 0.7);
+}
+
+/* Overrides Ionic */
+ion-content {
+  --background: var(--light);
+}
+
+ion-toolbar {
+  --background: var(--light);
+}
+
+ion-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+}
+
+ion-button {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  text-transform: none;
+}
+
+ion-chip {
+  font-family: 'Poppins', sans-serif;
+}
+
+ion-item {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Styles spécifiques pour le débogage */
+.debug-border {
+  border: 1px solid red !important;
+}
+
+.debug-border-2 {
+  border: 1px solid blue !important;
+}
+
+.debug-border-3 {
+  border: 1px solid green !important;
+}
