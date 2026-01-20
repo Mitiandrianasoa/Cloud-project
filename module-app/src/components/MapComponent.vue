@@ -9,12 +9,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Geolocation } from '@capacitor/geolocation';
 
-// URLs pour les icônes Leaflet (solution Vite compatible)
 const markerIcon2x = new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href;
 const markerIcon = new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href;
 const markerShadow = new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href;
@@ -22,7 +21,7 @@ const markerShadow = new URL('leaflet/dist/images/marker-shadow.png', import.met
 const props = defineProps({
   center: {
     type: Array,
-    default: () => [-18.8792, 47.5079] // Antananarivo
+    default: () => [-18.8792, 47.5079]
   },
   zoom: {
     type: Number,
@@ -34,7 +33,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['location-updated', 'map-ready', 'report-clicked']);
+const emit = defineEmits(['location-updated', 'map-ready', 'report-clicked', 'map-clicked']);
 
 // Références
 const mapContainer = ref(null);
@@ -43,11 +42,18 @@ const userMarker = ref(null);
 const mapLoaded = ref(false);
 const reportMarkers = ref([]);
 
+// Watcher pour les reports - MAINTENANT AVEC CONDITIONS
+watch(() => props.reports, (newReports) => {
+  console.log('Reports updated, adding markers:', newReports.length);
+  // N'ajouter les marqueurs que si la carte est chargée
+  if (mapLoaded.value && map.value) {
+    addReportMarkers();
+  }
+}, { deep: true });
+
 onMounted(async () => {
   console.log('MapComponent mounted');
-  console.log('Container element:', mapContainer.value);
   
-  // Attendre que le DOM soit complètement chargé
   await nextTick();
   
   if (mapContainer.value) {
@@ -56,11 +62,12 @@ onMounted(async () => {
     mapLoaded.value = true;
     emit('map-ready', map.value);
     
-    // Attendre un peu puis centrer sur l'utilisateur
+    // Attendre que la carte soit complètement chargée
     setTimeout(async () => {
       await centerOnUser();
+      // Maintenant, ajouter les marqueurs des reports
       addReportMarkers();
-    }, 300);
+    }, 500);
   } else {
     console.error('Map container not found!');
   }
@@ -74,9 +81,11 @@ onUnmounted(() => {
   }
 });
 
-// Fix pour les icônes Leaflet
 const fixLeafletIcons = () => {
-  delete L.Icon.Default.prototype._getIconUrl;
+  if (L.Icon.Default.prototype._getIconUrl) {
+    delete L.Icon.Default.prototype._getIconUrl;
+  }
+  
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: markerIcon2x,
     iconUrl: markerIcon,
@@ -95,12 +104,10 @@ const initMap = async () => {
   }
 
   try {
-    // Appliquer le fix des icônes
     fixLeafletIcons();
     
     console.log('Creating Leaflet map...');
     
-    // Créer la carte
     map.value = L.map(mapContainer.value, {
       center: props.center,
       zoom: props.zoom,
@@ -111,7 +118,6 @@ const initMap = async () => {
 
     console.log('Map created:', map.value);
     
-    // Ajouter les tuiles OpenStreetMap (pour test)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -120,10 +126,19 @@ const initMap = async () => {
 
     console.log('Tiles added');
     
-    // Ajouter un contrôle de zoom personnalisé
     L.control.zoom({
       position: 'bottomright'
     }).addTo(map.value);
+    
+    // Ajouter l'événement de clic sur la carte
+    map.value.on('click', (e) => {
+      console.log('🗺️ Map clicked at:', e.latlng);
+      // Émettre la position cliquée vers le parent
+      emit('map-clicked', {
+        lat: e.latlng.lat,
+        lng: e.latlng.lng
+      });
+    });
     
     // Forcer le redimensionnement après un délai
     setTimeout(() => {
@@ -131,12 +146,7 @@ const initMap = async () => {
         map.value.invalidateSize();
         console.log('Map invalidateSize called');
       }
-    }, 200);
-    
-    // Ajouter un événement de clic sur la carte
-    map.value.on('click', (e) => {
-      console.log('Map clicked at:', e.latlng);
-    });
+    }, 300);
 
   } catch (error) {
     console.error('Error initializing map:', error);
@@ -155,10 +165,8 @@ const centerOnUser = async () => {
     console.log('User location found:', latitude, longitude);
     
     if (map.value) {
-      // Centrer sur l'utilisateur
       map.value.setView([latitude, longitude], 15);
       
-      // Ajouter ou mettre à jour le marqueur utilisateur
       if (userMarker.value) {
         userMarker.value.setLatLng([latitude, longitude]);
       } else {
@@ -175,7 +183,6 @@ const centerOnUser = async () => {
     }
   } catch (error) {
     console.warn('Could not get user location:', error);
-    // Centrer sur Antananarivo par défaut
     if (map.value) {
       map.value.setView(props.center, props.zoom);
       console.log('Map centered on default location');
@@ -184,6 +191,12 @@ const centerOnUser = async () => {
 };
 
 const addReportMarkers = () => {
+  // Vérifier que la carte est bien initialisée
+  if (!map.value || !L) {
+    console.warn('Map not ready, skipping markers');
+    return;
+  }
+  
   // Nettoyer les anciens marqueurs
   reportMarkers.value.forEach(marker => {
     if (map.value && marker) {
@@ -192,15 +205,50 @@ const addReportMarkers = () => {
   });
   reportMarkers.value = [];
   
-  // Ajouter les marqueurs de signalement
+  // Ajouter les marqueurs de signalement avec des icônes colorées
   props.reports.forEach(report => {
-    if (report.lat && report.lng) {
-      const marker = L.marker([report.lat, report.lng])
+    if (report.position && report.position.lat && report.position.lng) {
+      // Créer une icône colorée selon le type
+      const iconColor = getIconColor(report.type);
+      const markerIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `
+          <div style="
+            background: ${iconColor};
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+          ">
+            ${getTypeIcon(report.type)}
+          </div>
+        `,
+        iconSize: [35, 35],
+        iconAnchor: [17.5, 35]
+      });
+      
+      const marker = L.marker([report.position.lat, report.position.lng], { icon: markerIcon })
         .addTo(map.value)
         .bindPopup(`
-          <div style="font-family: 'Poppins', sans-serif; padding: 5px;">
-            <strong>${report.title || 'Signalement'}</strong><br/>
-            ${report.description || ''}
+          <div style="font-family: 'Poppins', sans-serif; padding: 10px; min-width: 250px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">${getTypeIcon(report.type)}</span>
+              <h3 style="margin: 0; color: #333; font-size: 1.1rem;">${report.title || 'Signalement'}</h3>
+            </div>
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 0.9rem;">${report.description || ''}</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #888;">
+              <span>${new Date(report.date).toLocaleDateString()}</span>
+              <span style="padding: 4px 8px; background: ${getUrgencyColor(report.urgency)}; color: white; border-radius: 12px;">
+                Urgence: ${report.urgency}
+              </span>
+            </div>
           </div>
         `)
         .on('click', () => {
@@ -214,15 +262,47 @@ const addReportMarkers = () => {
   console.log('Report markers added:', reportMarkers.value.length);
 };
 
+// Fonctions utilitaires pour les couleurs et icônes
+const getIconColor = (type) => {
+  const colors = {
+    danger: '#FF6B6B',
+    obstacle: '#4D96FF',
+    damage: '#06D6A0',
+    other: '#AA96DA'
+  };
+  return colors[type] || '#666';
+};
+
+const getTypeIcon = (type) => {
+  const icons = {
+    danger: '⚠️',
+    obstacle: '🚧',
+    damage: '🛠️',
+    other: '📝'
+  };
+  return icons[type] || '📍';
+};
+
+const getUrgencyColor = (urgency) => {
+  switch(urgency) {
+    case 1: return '#06D6A0'; // Vert
+    case 2: return '#FF9E6D'; // Orange
+    case 3: return '#FF6B6B'; // Rouge
+    default: return '#AA96DA'; // Violet
+  }
+};
+
 // Méthode pour recentrer la carte
 const recenter = () => {
   centerOnUser();
 };
 
-// Exposer les méthodes au parent
+// Méthode pour obtenir la carte
+const getMap = () => map.value;
+
 defineExpose({
   recenter,
-  getMap: () => map.value
+  getMap
 });
 </script>
 
@@ -240,9 +320,9 @@ defineExpose({
   height: 100%;
   min-height: 500px;
   z-index: 1;
+  cursor: pointer; /* Indiquer que la carte est cliquable */
 }
 
-/* État de chargement */
 .map-loading {
   position: absolute;
   top: 50%;
@@ -332,5 +412,11 @@ defineExpose({
   background: rgba(255, 255, 255, 0.8) !important;
   padding: 2px 5px !important;
   border-radius: 3px !important;
+}
+
+/* Style pour les marqueurs personnalisés */
+.custom-marker {
+  background: none !important;
+  border: none !important;
 }
 </style>

@@ -14,6 +14,50 @@ export const useReportStore = defineStore('reports', () => {
     reports.value.filter(r => r.status === 'new' || r.status === 'in-progress').length
   );
 
+  // Ajoutez cette méthode dans le store
+const saveToFile = async (report) => {
+  try {
+    // Récupérer tous les signalements
+    let allReports = [];
+    try {
+      const stored = localStorage.getItem('safeRoads_reports_file');
+      if (stored) {
+        allReports = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Erreur lecture fichier:', e);
+    }
+    
+    // Ajouter le nouveau
+    allReports.push(report);
+    
+    // Sauvegarder
+    localStorage.setItem('safeRoads_reports_file', JSON.stringify(allReports, null, 2));
+    
+    console.log('Signalement sauvegardé dans fichier');
+    
+    // Optionnel: Télécharger le fichier
+    downloadJSONFile(allReports, 'safeRoads_reports.json');
+    
+      } catch (error) {
+        console.error('Erreur sauvegarde fichier:', error);
+        throw error;
+      }
+    };
+
+    // Fonction pour télécharger le fichier JSON
+    const downloadJSONFile = (data, filename) => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
   // Nouveau : Récupérer les derniers signalements
   const recentReports = computed(() => 
     reports.value.slice(0, 5) // 5 derniers signalements
@@ -235,6 +279,8 @@ export const useReportStore = defineStore('reports', () => {
   const filterByUrgency = (urgencyLevel) => {
     return reports.value.filter(r => r.urgency === urgencyLevel);
   };
+
+
 
   // NOUVEAU : Filtrer par localisation (rayon en km)
   const filterByLocation = (centerLat, centerLng, radiusKm = 5) => {
