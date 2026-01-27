@@ -7,7 +7,7 @@
             <ion-icon :icon="arrowBackOutline"></ion-icon>
           </ion-button>
         </ion-buttons>
-        <ion-title>Mes Signalements 📋</ion-title>
+        <ion-title>Liste Signalements</ion-title>
         <ion-buttons slot="end">
           <ion-button @click="syncReports">
             <ion-icon :icon="syncOutline"></ion-icon>
