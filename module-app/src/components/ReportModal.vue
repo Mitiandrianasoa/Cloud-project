@@ -1,843 +1,531 @@
 <template>
-  <ion-modal 
-    :is-open="isOpen" 
-    @didDismiss="closeModal"
-    class="report-modal-horizontal"
-    :presenting-element="presentingElement"
-    @willPresent="onWillPresent"
-    :breakpoints="[0, 0.25, 0.5, 0.75]"
-    :initial-breakpoint="0.75"
-  >
+  <ion-modal :is-open="isOpen" @didDismiss="closeModal">
     <ion-header>
-      <ion-toolbar class="modal-header">
-        <ion-title class="modal-title">
-          <span class="modal-icon">🚨</span>
-          Nouveau Signalement
-        </ion-title>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button @click="closeModal">Annuler</ion-button>
+        </ion-buttons>
+        <ion-title>Signaler un problème</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="closeModal" class="close-btn">
-            <ion-icon :icon="closeOutline" />
+          <ion-button @click="submitReport" :strong="true">
+            Envoyer
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="modal-content-horizontal">
-      <div class="form-container-horizontal">
-        <!-- Formulaire en ligne -->
-        <form @submit.prevent="submitForm" class="report-form-horizontal">
-          <!-- Première ligne : Type + Urgence -->
-          <div class="form-row">
-            <!-- Type de problème -->
-            <div class="form-column">
-              <ion-label class="section-label">Type de problème</ion-label>
-              <div class="type-buttons-horizontal">
-                <ion-segment v-model="formData.type" scrollable class="type-segment">
-                  <ion-segment-button value="danger">
-                    <div class="segment-content">
-                      <div class="segment-icon">⚠️</div>
-                      <div class="segment-label">Danger</div>
-                    </div>
-                  </ion-segment-button>
-                  <ion-segment-button value="obstacle">
-                    <div class="segment-content">
-                      <div class="segment-icon">🚧</div>
-                      <div class="segment-label">Obstacle</div>
-                    </div>
-                  </ion-segment-button>
-                  <ion-segment-button value="damage">
-                    <div class="segment-content">
-                      <div class="segment-icon">🛠️</div>
-                      <div class="segment-label">Dégât</div>
-                    </div>
-                  </ion-segment-button>
-                  <ion-segment-button value="other">
-                    <div class="segment-content">
-                      <div class="segment-icon">📝</div>
-                      <div class="segment-label">Autre</div>
-                    </div>
-                  </ion-segment-button>
-                </ion-segment>
-              </div>
-            </div>
-
-            <!-- Niveau d'urgence -->
-            <div class="form-column">
-              <ion-label class="section-label">Niveau d'urgence</ion-label>
-              <div class="urgency-buttons-horizontal">
-                <div class="urgency-grid">
-                  <button 
-                    v-for="level in urgencyLevels"
-                    :key="level.value"
-                    @click="selectUrgency(level.value)"
-                    type="button"
-                    class="urgency-btn-horizontal"
-                    :class="{ 
-                      active: formData.urgency === level.value,
-                      [`level-${level.value}`]: true 
-                    }"
-                  >
-                    <span class="urgency-icon">{{ level.icon }}</span>
-                    <span class="urgency-text">{{ level.label }}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Deuxième ligne : Titre -->
-          <div class="form-row">
-            <div class="form-column-full">
-              <ion-label class="section-label">Titre du signalement</ion-label>
-              <ion-input
-                v-model="formData.title"
-                placeholder="Ex: Nid de poule dangereux sur la route principale"
-                class="custom-input-horizontal"
-                required
-                fill="solid"
-                @ionInput="validateForm"
-              ></ion-input>
-              <div class="input-hint" v-if="formData.title.length < 3">
-                Minimum 3 caractères requis
-              </div>
-            </div>
-          </div>
-
-          <!-- Troisième ligne : Description -->
-          <div class="form-row">
-            <div class="form-column-full">
-              <ion-label class="section-label">Description détaillée</ion-label>
-              <ion-textarea
-                v-model="formData.description"
-                placeholder="Décrivez le problème en détail (localisation précise, taille, dangerosité...)"
-                rows="3"
-                class="custom-textarea-horizontal"
-                :counter="true"
-                maxlength="500"
-                required
-                fill="solid"
-                @ionInput="validateForm"
-              ></ion-textarea>
-              <div class="input-hint" v-if="formData.description.length < 10">
-                Veuillez fournir une description plus détaillée
-              </div>
-            </div>
-          </div>
-
-          <!-- Quatrième ligne : Position -->
-          <div class="form-row">
-            <div class="form-column-full">
-              <ion-label class="section-label">Position</ion-label>
-              <div class="position-card" :class="{ 'has-position': formData.position }">
-                <div class="position-header">
-                  <ion-icon :icon="locationOutline" class="position-icon-large" />
-                  <div class="position-info">
-                    <div class="position-title">
-                      {{ positionText }}
-                    </div>
-                    <div class="position-coords" v-if="formData.position && formData.position.lat">
-                      {{ formData.position.lat.toFixed(6) }}, {{ formData.position.lng.toFixed(6) }}
-                    </div>
-                  </div>
-                </div>
-                <div class="position-hint">
-                  <ion-icon :icon="informationCircleOutline" />
-                  <span>Cliquez sur la carte pour changer la position</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Boutons d'action -->
-          <div class="form-actions-horizontal">
-            <ion-button 
-              @click="closeModal" 
-              fill="outline" 
-              class="cancel-btn-horizontal"
-              type="button"
+    <ion-content class="gradient-bg">
+      <div class="modal-content">
+        <!-- Type de problème -->
+        <div class="form-section">
+          <h3 class="section-title">Type de problème</h3>
+          <div class="type-buttons">
+            <button
+              v-for="type in problemTypes"
+              :key="type.value"
+              class="type-button"
+              :class="{ active: formData.type === type.value }"
+              @click="selectType(type.value)"
             >
-              Annuler
-            </ion-button>
-            <ion-button 
-              type="submit" 
-              class="submit-btn-horizontal"
-              :disabled="!isFormValid"
-              :class="{ 'disabled': !isFormValid }"
-            >
-              <ion-icon :icon="checkmarkOutline" slot="start" />
-              {{ isSubmitting ? 'Publication...' : 'Publier le signalement' }}
-            </ion-button>
+              <span class="type-icon">{{ type.icon }}</span>
+              <span class="type-label">{{ type.label }}</span>
+            </button>
           </div>
-        </form>
+        </div>
+
+        <!-- Niveau d'urgence -->
+        <div class="form-section" v-if="formData.type">
+          <h3 class="section-title">Niveau d'urgence</h3>
+          <div class="urgency-levels">
+            <button
+              v-for="level in urgencyLevels"
+              :key="level.value"
+              class="urgency-button"
+              :class="{ active: formData.urgency === level.value }"
+              @click="selectUrgency(level.value)"
+            >
+              <div class="urgency-number" :style="{ background: level.color }">
+                {{ level.value }}
+              </div>
+              <span class="urgency-label">{{ level.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="form-section" v-if="formData.urgency">
+          <h3 class="section-title">Description</h3>
+          <ion-textarea
+            v-model="formData.description"
+            placeholder="Décrivez le problème en détail..."
+            :rows="4"
+            class="cute-textarea"
+            :counter="true"
+            :maxlength="500"
+          ></ion-textarea>
+        </div>
+
+        <!-- Photos -->
+        <div class="form-section" v-if="formData.description">
+          <h3 class="section-title">Photos (max 3)</h3>
+          <div class="photos-container">
+            <div
+              v-for="(photo, index) in formData.photos"
+              :key="index"
+              class="photo-preview"
+            >
+              <img :src="photo" alt="Photo" />
+              <button class="remove-photo" @click="removePhoto(index)">
+                <ion-icon :icon="closeCircleOutline"></ion-icon>
+              </button>
+            </div>
+            <button
+              v-if="formData.photos.length < 3"
+              class="add-photo-button"
+              @click="addPhoto"
+            >
+              <ion-icon :icon="cameraOutline"></ion-icon>
+              <span>Ajouter</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Position -->
+        <div class="form-section" v-if="formData.description">
+          <h3 class="section-title">Position</h3>
+          <div class="location-options">
+            <button
+              class="location-button"
+              :class="{ active: formData.useCurrentLocation }"
+              @click="useCurrentLocation"
+            >
+              <ion-icon :icon="locateOutline"></ion-icon>
+              <span>Position actuelle</span>
+            </button>
+            <button
+              class="location-button"
+              :class="{ active: !formData.useCurrentLocation }"
+              @click="selectManualLocation"
+            >
+              <ion-icon :icon="navigateOutline"></ion-icon>
+              <span>Choisir sur la carte</span>
+            </button>
+          </div>
+          <div v-if="formData.location" class="location-preview">
+            <ion-icon :icon="locationOutline"></ion-icon>
+            <span>{{ formatLocation(formData.location) }}</span>
+          </div>
+        </div>
       </div>
     </ion-content>
   </ion-modal>
 </template>
 
-<script setup>
-import { ref, reactive, computed, watch } from 'vue';
-import { 
-  IonModal, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonButton, IonIcon, IonLabel, IonInput, IonTextarea,
-  IonSegment, IonSegmentButton, IonButtons
+<script setup lang="ts">
+import { ref, watch } from 'vue';
+import {
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonButton,
+  IonTitle,
+  IonContent,
+  IonTextarea,
+  IonIcon,
+  toastController
 } from '@ionic/vue';
-import { 
-  closeOutline, locationOutline, informationCircleOutline,
-  checkmarkOutline
+import {
+  closeCircleOutline,
+  cameraOutline,
+  locateOutline,
+  navigateOutline,
+  locationOutline
 } from 'ionicons/icons';
 
-const emit = defineEmits(['close', 'submit']);
+interface Props {
+  isOpen: boolean;
+  userLocation: { lat: number; lng: number } | null;
+}
 
-const props = defineProps({
-  isOpen: Boolean,
-  position: Object,
-  presentingElement: {
-    type: Object,
-    default: null
-  }
-});
+const props = defineProps<Props>();
+const emit = defineEmits(['close', 'submit']);
 
 // Types de problèmes
 const problemTypes = [
-  { value: 'danger', label: 'Danger', icon: '⚠️' },
-  { value: 'obstacle', label: 'Obstacle', icon: '🚧' },
-  { value: 'damage', label: 'Dégât', icon: '🛠️' },
-  { value: 'other', label: 'Autre', icon: '📝' }
+  { value: 'urgent', icon: '🚨', label: 'Urgence' },
+  { value: 'anomaly', icon: '⚠️', label: 'Anomalie' },
+  { value: 'info', icon: 'ℹ️', label: 'Information' }
 ];
 
 // Niveaux d'urgence
 const urgencyLevels = [
-  { value: 1, label: 'Faible', icon: '🟢' },
-  { value: 2, label: 'Moyen', icon: '🟡' },
-  { value: 3, label: 'Élevé', icon: '🔴' }
+  { value: 1, label: 'Faible', color: '#B0E0E6' },
+  { value: 2, label: 'Moyen', color: '#FFD8A8' },
+  { value: 3, label: 'Élevé', color: '#FFB3BA' }
 ];
 
 // Données du formulaire
-const formData = reactive({
-  type: 'danger',
-  title: '',
+const formData = ref({
+  type: '',
+  urgency: null as number | null,
   description: '',
-  urgency: 2,
-  position: null
+  photos: [] as string[],
+  location: null as { lat: number; lng: number } | null,
+  useCurrentLocation: true
 });
 
-// États
-const isSubmitting = ref(false);
-const isFormValid = ref(false);
+// Sélectionner le type
+const selectType = (type: string) => {
+  formData.value.type = type;
+};
 
-// Position calculée (avec valeur par défaut)
-const position = computed(() => {
-  return props.position || { lat: -18.8792, lng: 47.5079 }; // Antananarivo par défaut
-});
+// Sélectionner l'urgence
+const selectUrgency = (level: number) => {
+  formData.value.urgency = level;
+};
 
-// Texte de position
-const positionText = computed(() => {
-  if (!formData.position || !formData.position.lat) {
-    return "Cliquez sur la carte pour sélectionner une position";
+// Ajouter une photo
+const addPhoto = async () => {
+  // TODO: Implémenter Capacitor Camera
+  console.log('Ajouter une photo');
+  
+  // Simulation avec placeholder
+  const placeholderPhoto = `https://via.placeholder.com/300/FFB6C1/ffffff?text=Photo+${formData.value.photos.length + 1}`;
+  formData.value.photos.push(placeholderPhoto);
+  
+  const toast = await toastController.create({
+    message: 'Photo ajoutée (simulation) 📸',
+    duration: 1500,
+    color: 'tertiary',
+    position: 'top'
+  });
+  await toast.present();
+};
+
+// Retirer une photo
+const removePhoto = (index: number) => {
+  formData.value.photos.splice(index, 1);
+};
+
+// Utiliser la position actuelle
+const useCurrentLocation = () => {
+  formData.value.useCurrentLocation = true;
+  if (props.userLocation) {
+    formData.value.location = { ...props.userLocation };
   }
-  return "Position sélectionnée sur la carte";
-});
+};
 
-// Initialiser la position
-watch(() => props.position, (newPosition) => {
-  if (newPosition) {
-    formData.position = newPosition;
-    console.log('📍 Position initialisée:', newPosition);
-    validateForm();
+// Sélectionner manuellement
+const selectManualLocation = async () => {
+  formData.value.useCurrentLocation = false;
+  
+  // TODO: Permettre de sélectionner sur la carte
+  const toast = await toastController.create({
+    message: 'Sélection manuelle - À implémenter 🗺️',
+    duration: 2000,
+    color: 'tertiary',
+    position: 'top'
+  });
+  await toast.present();
+};
+
+// Formater la position
+const formatLocation = (location: { lat: number; lng: number }): string => {
+  return `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`;
+};
+
+// Soumettre le signalement
+const submitReport = async () => {
+  // Validation
+  if (!formData.value.type) {
+    showError('Veuillez sélectionner un type de problème');
+    return;
   }
-}, { immediate: true });
+  if (!formData.value.urgency) {
+    showError('Veuillez sélectionner un niveau d\'urgence');
+    return;
+  }
+  if (!formData.value.description) {
+    showError('Veuillez ajouter une description');
+    return;
+  }
+  if (!formData.value.location && formData.value.useCurrentLocation) {
+    formData.value.location = props.userLocation;
+  }
+  if (!formData.value.location) {
+    showError('Position non disponible');
+    return;
+  }
 
-// Méthodes
+  // Émettre l'événement
+  emit('submit', { ...formData.value });
+  
+  // Réinitialiser le formulaire
+  resetForm();
+};
+
+// Afficher une erreur
+const showError = async (message: string) => {
+  const toast = await toastController.create({
+    message,
+    duration: 2000,
+    color: 'warning',
+    position: 'top'
+  });
+  await toast.present();
+};
+
+// Réinitialiser le formulaire
+const resetForm = () => {
+  formData.value = {
+    type: '',
+    urgency: null,
+    description: '',
+    photos: [],
+    location: null,
+    useCurrentLocation: true
+  };
+};
+
+// Fermer le modal
 const closeModal = () => {
-  console.log('Fermeture modal');
   resetForm();
   emit('close');
 };
 
-const onWillPresent = () => {
-  console.log('Modal will present');
-  // Focus sur le premier champ après un délai
-  setTimeout(() => {
-    const input = document.querySelector('.custom-input-horizontal');
-    if (input) {
-      input.setFocus();
-    }
-  }, 400);
-};
-
-const selectUrgency = (level) => {
-  console.log('Urgence sélectionnée:', level);
-  formData.urgency = level;
-  validateForm();
-};
-
-const validateForm = () => {
-  isFormValid.value = formData.title.trim().length >= 3 && 
-                      formData.description.trim().length >= 10 &&
-                      formData.position !== null;
-  return isFormValid.value;
-};
-
-const submitForm = async () => {
-  console.log('Tentative d\'envoi du formulaire');
-  
-  if (!validateForm()) {
-    console.log('Formulaire non valide');
-    return;
+// Initialiser la position quand le modal s'ouvre
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen && props.userLocation) {
+    formData.value.location = { ...props.userLocation };
   }
-  
-  isSubmitting.value = true;
-  
-  try {
-    // Préparer le signalement
-    const report = {
-      id: 'report_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-      type: formData.type,
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      urgency: formData.urgency,
-      position: formData.position,
-      date: new Date().toISOString(),
-      status: 'new',
-      userId: 'user_' + Math.random().toString(36).substr(2, 9),
-      votes: 0,
-      comments: [],
-      photos: []
-    };
-    
-    console.log('Signalement préparé:', report);
-    
-    // Petit délai pour l'animation
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    emit('submit', report);
-    
-    // Réinitialiser le formulaire
-    resetForm();
-    
-  } catch (error) {
-    console.error('Erreur lors de la soumission:', error);
-    alert('Erreur lors de la publication du signalement');
-  } finally {
-    isSubmitting.value = false;
-  }
-};
-
-const resetForm = () => {
-  formData.type = 'danger';
-  formData.title = '';
-  formData.description = '';
-  formData.urgency = 2;
-  formData.position = position.value;
-  isFormValid.value = false;
-  isSubmitting.value = false;
-};
+});
 </script>
 
 <style scoped>
-/* Modal avec breakpoints pour mobile */
-.report-modal-horizontal {
-  --border-radius: 20px 20px 0 0;
-  --box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  --background: #FFF9F9;
-  z-index: 10000 !important;
-  position: fixed !important;
-  bottom: 0 !important;
-  top: auto !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  height: 85vh !important;
-  max-height: 85vh !important;
-  animation: slideUp 0.3s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-/* En-tête modal */
-.modal-header {
-  --background: linear-gradient(135deg, #A8D8EA, #AA96DA);
-  --color: white;
-  border-radius: 20px 20px 0 0;
-  padding: 10px 0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.modal-title {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 600;
-  font-size: 1.3rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 10px;
-}
-
-.modal-icon {
-  font-size: 1.4rem;
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-
-.close-btn {
-  --background: rgba(255, 255, 255, 0.2);
-  --border-radius: 50%;
-  --padding-start: 8px;
-  --padding-end: 8px;
-  backdrop-filter: blur(10px);
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  --background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.1);
-}
-
-/* Contenu modal */
-.modal-content-horizontal {
-  --background: #FFF9F9;
-  --padding-top: 0;
-  --padding-bottom: 20px;
-  overflow-y: auto;
-  max-height: calc(85vh - 70px);
-}
-
-.form-container-horizontal {
+.modal-content {
   padding: 20px;
-  max-width: 100%;
 }
 
-.report-form-horizontal {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.form-section {
+  margin-bottom: 30px;
 }
 
-/* Layout des lignes */
-.form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-  animation: fadeInUp 0.4s ease-out;
-  animation-fill-mode: both;
-}
-
-.form-row:nth-child(1) { animation-delay: 0.1s; }
-.form-row:nth-child(2) { animation-delay: 0.2s; }
-.form-row:nth-child(3) { animation-delay: 0.3s; }
-.form-row:nth-child(4) { animation-delay: 0.4s; }
-.form-row:nth-child(5) { animation-delay: 0.5s; }
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.form-column {
-  flex: 1;
-  min-width: 0;
-}
-
-.form-column-full {
-  flex: 1 0 100%;
-}
-
-/* Labels */
-.section-label {
-  display: block;
-  font-family: 'Poppins', sans-serif;
+.section-title {
+  font-size: 16px;
   font-weight: 600;
-  color: #5D5D5D;
-  font-size: 1rem;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  color: #5a5a5a;
+  margin-bottom: 15px;
 }
 
-/* Type de problème */
-.type-buttons-horizontal {
-  background: white;
-  border-radius: 12px;
-  padding: 8px;
-  border: 2px solid rgba(170, 150, 218, 0.2);
-  transition: all 0.3s ease;
-}
-
-.type-buttons-horizontal:hover {
-  border-color: rgba(170, 150, 218, 0.4);
-  box-shadow: 0 4px 12px rgba(170, 150, 218, 0.1);
-}
-
-.type-segment {
-  --background: transparent;
-}
-
-.type-segment::part(indicator) {
-  background: linear-gradient(135deg, #AA96DA, #A8D8EA);
-  border-radius: 10px;
-  transition: all 0.3s ease;
-}
-
-.segment-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 4px;
-  transition: all 0.2s ease;
-}
-
-.segment-icon {
-  font-size: 20px;
-  transition: transform 0.2s ease;
-}
-
-.segment-label {
-  font-family: 'Poppins', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #666;
-}
-
-/* Urgence */
-.urgency-buttons-horizontal {
-  background: white;
-  border-radius: 12px;
-  padding: 8px;
-  border: 2px solid rgba(170, 150, 218, 0.2);
-  transition: all 0.3s ease;
-}
-
-.urgency-grid {
+.type-buttons {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 12px;
 }
 
-.urgency-btn-horizontal {
-  background: #FFF9F9;
-  border: 2px solid rgba(170, 150, 218, 0.3);
-  border-radius: 10px;
-  padding: 12px 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.type-button {
+  background: white;
+  border: 2px solid #ffe4e9;
+  border-radius: 15px;
+  padding: 20px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  font-family: 'Poppins', sans-serif;
-  min-height: 80px;
-  justify-content: center;
-}
-
-.urgency-btn-horizontal:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: rgba(170, 150, 218, 0.5);
-}
-
-.urgency-btn-horizontal.active.level-1 {
-  background: linear-gradient(135deg, rgba(6, 214, 160, 0.1), rgba(181, 234, 215, 0.3));
-  border-color: #06D6A0;
-  color: #06D6A0;
-  box-shadow: 0 4px 12px rgba(6, 214, 160, 0.2);
-}
-
-.urgency-btn-horizontal.active.level-2 {
-  background: linear-gradient(135deg, rgba(255, 158, 109, 0.1), rgba(255, 213, 182, 0.3));
-  border-color: #FF9E6D;
-  color: #FF9E6D;
-  box-shadow: 0 4px 12px rgba(255, 158, 109, 0.2);
-}
-
-.urgency-btn-horizontal.active.level-3 {
-  background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 170, 165, 0.3));
-  border-color: #FF6B6B;
-  color: #FF6B6B;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
-}
-
-.urgency-icon {
-  font-size: 24px;
-  transition: transform 0.2s ease;
-}
-
-.urgency-btn-horizontal:hover .urgency-icon {
-  transform: scale(1.2);
-}
-
-.urgency-text {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-/* Inputs */
-.custom-input-horizontal, .custom-textarea-horizontal {
-  --background: white;
-  --border-radius: 12px;
-  --padding-start: 16px;
-  --padding-end: 16px;
-  --padding-top: 14px;
-  --padding-bottom: 14px;
-  font-family: 'Poppins', sans-serif;
-  border: 2px solid rgba(170, 150, 218, 0.2);
-  margin-top: 0;
+  gap: 8px;
+  cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.custom-input-horizontal::part(native) {
-  font-size: 1rem;
+.type-button.active {
+  border-color: var(--ion-color-primary);
+  background: linear-gradient(135deg, #FFB6C1, #DDA0DD);
+  color: white;
 }
 
-.custom-textarea-horizontal::part(native) {
-  min-height: 100px;
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.custom-input-horizontal:focus-within,
-.custom-textarea-horizontal:focus-within {
-  border-color: #AA96DA;
-  box-shadow: 0 4px 12px rgba(170, 150, 218, 0.15);
-}
-
-.input-hint {
-  font-size: 0.8rem;
-  color: #FF6B6B;
-  margin-top: 5px;
-  font-family: 'Poppins', sans-serif;
-  padding-left: 5px;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* Position */
-.position-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  border: 2px solid rgba(168, 216, 234, 0.3);
-  margin-top: 0;
-  transition: all 0.3s ease;
-}
-
-.position-card.has-position {
-  border-color: #A8D8EA;
-  background: linear-gradient(135deg, rgba(168, 216, 234, 0.05), rgba(170, 150, 218, 0.05));
-}
-
-.position-card:hover {
-  border-color: rgba(168, 216, 234, 0.6);
-  box-shadow: 0 4px 15px rgba(168, 216, 234, 0.1);
-}
-
-.position-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.position-icon-large {
+.type-icon {
   font-size: 32px;
-  color: #A8D8EA;
-  background: rgba(168, 216, 234, 0.2);
-  width: 60px;
-  height: 60px;
+}
+
+.type-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.urgency-levels {
+  display: flex;
+  gap: 12px;
+}
+
+.urgency-button {
+  flex: 1;
+  background: white;
+  border: 2px solid #ffe4e9;
+  border-radius: 15px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.urgency-button.active {
+  border-color: var(--ion-color-primary);
+  transform: scale(1.05);
+}
+
+.urgency-number {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.position-card.has-position .position-icon-large {
-  background: linear-gradient(135deg, #A8D8EA, #AA96DA);
-  color: white;
-  transform: scale(1.05);
-}
-
-.position-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.position-title {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 600;
-  color: #5D5D5D;
-  margin-bottom: 6px;
-  font-size: 1rem;
-  word-wrap: break-word;
-}
-
-.position-coords {
-  font-family: 'Poppins', sans-serif;
-  color: #6C757D;
-  font-size: 0.85rem;
-  font-family: 'Courier New', monospace;
-  background: rgba(168, 216, 234, 0.1);
-  padding: 6px 10px;
-  border-radius: 8px;
-  display: inline-block;
-  transition: all 0.3s ease;
-}
-
-.position-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: rgba(255, 213, 182, 0.1);
-  border-radius: 10px;
-  font-family: 'Poppins', sans-serif;
-  font-size: 0.9rem;
-  color: #FF9E6D;
-  border: 1px solid rgba(255, 213, 182, 0.3);
-  animation: pulseHint 2s infinite;
-}
-
-@keyframes pulseHint {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.position-hint ion-icon {
   font-size: 18px;
-  flex-shrink: 0;
+  font-weight: 700;
+  color: white;
 }
 
-/* Actions */
-.form-actions-horizontal {
-  display: flex;
-  gap: 16px;
-  margin-top: 10px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(170, 150, 218, 0.2);
-  animation: fadeInUp 0.6s ease-out;
-  animation-delay: 0.6s;
-  animation-fill-mode: both;
-}
-
-.cancel-btn-horizontal {
-  flex: 1;
-  --color: #6C757D;
-  --border-color: rgba(170, 150, 218, 0.3);
-  --border-radius: 12px;
-  font-weight: 500;
-  height: 48px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-}
-
-.cancel-btn-horizontal:hover {
-  --border-color: rgba(170, 150, 218, 0.6);
-  --color: #5D5D5D;
-  transform: translateY(-2px);
-}
-
-.submit-btn-horizontal {
-  flex: 2;
-  --background: linear-gradient(135deg, #AA96DA, #A8D8EA);
-  --border-radius: 12px;
-  --padding-start: 24px;
-  --padding-end: 24px;
+.urgency-label {
+  font-size: 12px;
+  color: #5a5a5a;
   font-weight: 600;
-  height: 48px;
-  font-size: 1rem;
-  box-shadow: 0 4px 15px rgba(170, 150, 218, 0.3);
+}
+
+.cute-textarea {
+  --background: white;
+  --border-radius: 15px;
+  --padding-start: 15px;
+  --padding-top: 15px;
+  border: 2px solid #ffe4e9;
   transition: all 0.3s ease;
+}
+
+.cute-textarea:focus-within {
+  border-color: var(--ion-color-primary);
+}
+
+.photos-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.photo-preview {
   position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
   overflow: hidden;
+  border: 2px solid #ffe4e9;
 }
 
-.submit-btn-horizontal:not(.disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(170, 150, 218, 0.4);
-  --background: linear-gradient(135deg, #9d86d7, #97cae3);
-}
-
-.submit-btn-horizontal.disabled {
-  --background: #E0E0E0;
-  --color: #9E9E9E;
-  box-shadow: none;
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.submit-btn-horizontal::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
+.photo-preview img {
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s ease;
+  object-fit: cover;
 }
 
-.submit-btn-horizontal:not(.disabled):hover::before {
-  left: 100%;
+.remove-photo {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Pour desktop - adaptation */
-@media (min-width: 769px) {
-  .report-modal-horizontal {
-    --border-radius: 20px;
-    --width: 90%;
-    --max-width: 800px;
-    --height: auto;
-    --max-height: 90vh;
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    bottom: auto !important;
-    transform: translate(-50%, -50%) !important;
-    animation: modalSlideIn 0.3s ease-out;
-  }
-  
-  @keyframes modalSlideIn {
-    from {
-      opacity: 0;
-      transform: translate(-50%, -48%) scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-  }
-  
-  .form-row {
-    flex-direction: row;
-  }
-  
-  .urgency-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+.remove-photo ion-icon {
+  font-size: 20px;
+  color: #FFB3BA;
+}
+
+.add-photo-button {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 2px dashed #FFB6C1;
+  background: #FFF5F7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-photo-button:active {
+  transform: scale(0.95);
+}
+
+.add-photo-button ion-icon {
+  font-size: 32px;
+  color: #FFB6C1;
+}
+
+.add-photo-button span {
+  font-size: 12px;
+  color: #FFB6C1;
+  font-weight: 600;
+}
+
+.location-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.location-button {
+  background: white;
+  border: 2px solid #ffe4e9;
+  border-radius: 15px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.location-button.active {
+  border-color: var(--ion-color-primary);
+  background: linear-gradient(135deg, #B0E0E6, #98D8C8);
+  color: white;
+}
+
+.location-button ion-icon {
+  font-size: 28px;
+}
+
+.location-button span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.location-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: white;
+  border: 2px solid #ffe4e9;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #5a5a5a;
+}
+
+.location-preview ion-icon {
+  font-size: 20px;
+  color: var(--ion-color-primary);
 }
 </style>
