@@ -163,9 +163,12 @@ const fetchReportsFromFirebase = () => {
         // Adaptation du format Firestore -> Interface UI
         tempReports.push({
           id: doc.id,
-          // On déduit le type CSS à partir du titre enregistré
-          type: data.title?.toLowerCase().includes('urgent') ? 'urgent' : 
-                data.title?.toLowerCase().includes('info') ? 'info' : 'anomaly',
+          // Utiliser le type stocké directement, ou déduire du titre si pas disponible
+          type: data.type || (
+            data.title?.toLowerCase().includes('urgent') ? 'urgent' : 
+            data.title?.toLowerCase().includes('information') ? 'info' : 
+            data.title?.toLowerCase().includes('info') ? 'info' : 'anomaly'
+          ),
           description: data.description || 'Aucune description',
           location: {
             lat: data.latitude || 0,
@@ -185,8 +188,20 @@ const fetchReportsFromFirebase = () => {
         });
       });
       
-      reports.value = tempReports;
-      console.log('✅ Reports mis à jour:', reports.value.length, 'signalements');
+      // ⚠️ FILTRAGE: 
+      // - Afficher TOUS les signalements de l'utilisateur connecté (peu importe le status)
+      // - Afficher les signalements VALIDÉS des autres utilisateurs (status != pending/EN_ATTENTE)
+      const userId = auth.currentUser?.uid || '';
+      reports.value = tempReports.filter(report => {
+        // Si c'est mon signalement, je le vois toujours
+        if (report.user_id === userId) {
+          return true;
+        }
+        // Sinon, je ne vois que les signalements validés par admin (new, in-progress, resolved)
+        // Les signalements 'pending' (EN_ATTENTE) ne sont visibles que par leur créateur
+        return report.status !== 'pending';
+      });
+      console.log('✅ Reports filtrés:', reports.value.length, 'signalements (user:', userId, ')');
     }, (error) => {
       console.error('❌ Erreur Firebase onSnapshot:', error);
     });
@@ -260,18 +275,38 @@ const viewReportDetails = (report: any) => {
 // --- HELPERS FORMATTAGE ---
 
 // Mapping des statuts Firebase -> UI
+// Status possibles: "EN_ATTENTE", "NOUVEAU", "EN_COURS", "RESOLU"
 const mapFirebaseStatus = (firebaseStatus: string): string => {
+  if (!firebaseStatus) return 'pending';
+  
+  const normalizedStatus = firebaseStatus.toUpperCase().trim().replace(/\s+/g, '_');
+  
   const statusMap: Record<string, string> = {
-    'NOUVEAU': 'pending',
+    // Status en attente de validation admin
     'EN_ATTENTE': 'pending',
+    'PENDING': 'pending',
+    // Status validé par admin (nouveau)
+    'NOUVEAU': 'new',
+    'NEW': 'new',
+    'VALIDE': 'new',
+    // Status en cours de traitement
     'EN_COURS': 'in-progress',
     'IN_PROGRESS': 'in-progress',
+    'IN-PROGRESS': 'in-progress',
+    // Status résolu
     'RESOLU': 'resolved',
     'RESOLVED': 'resolved',
+    'TERMINE': 'resolved',
+    'DONE': 'resolved',
+    // Status rejeté
     'REJETE': 'rejected',
-    'REJECTED': 'rejected'
+    'REJECTED': 'rejected',
+    'REFUSE': 'rejected'
   };
-  return statusMap[firebaseStatus?.toUpperCase()] || 'pending';
+  
+  const mappedStatus = statusMap[normalizedStatus] || 'pending';
+  console.log(`🏷️ Status mapping: "${firebaseStatus}" -> "${mappedStatus}"`);
+  return mappedStatus;
 };
 
 const formatDate = (date: Date) => {
@@ -289,7 +324,8 @@ const getTypeBadge = (type: string) => {
 
 const getStatusLabel = (status: string) => {
   const labels: any = { 
-    pending: '⏳ En attente', 
+    pending: '⏳ En attente',
+    new: '🆕 Nouveau',
     'in-progress': '🔄 En cours', 
     resolved: '✅ Résolu',
     rejected: '❌ Rejeté'
@@ -329,6 +365,7 @@ const goToMap = () => router.push('/map');
 .meta-item { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .status-badge { font-size: 11px; font-weight: bold; margin-top: 10px; display: inline-block; padding: 4px 8px; border-radius: 8px; background: #f4f5f8; }
 .status-badge.pending { background: #fff3cd; color: #856404; }
+.status-badge.new { background: #e0e7ff; color: #4338ca; }
 .status-badge.in-progress { background: #cce5ff; color: #004085; }
 .status-badge.resolved { background: #d4edda; color: #155724; }
 .status-badge.rejected { background: #f8d7da; color: #721c24; }

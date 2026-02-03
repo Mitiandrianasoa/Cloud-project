@@ -309,9 +309,19 @@ const loadMarkersFromFirebase = () => {
           map?.removeLayer(firebaseMarkers.get(id)!);
         }
 
-        // Déterminer la classe CSS selon le type
-        const typeClass = data.title?.toLowerCase().includes('urgent') ? 'urgent' : 
-                          data.title?.toLowerCase().includes('info') ? 'info' : 'anomaly';
+        // ⚠️ FILTRAGE: N'afficher que les signalements VALIDÉS (status != EN_ATTENTE)
+        // Les signalements en attente ne sont visibles que par leur créateur dans Reports
+        if (data.status === 'EN_ATTENTE') {
+          console.log(`⏳ Signalement ${id} en attente de validation - non affiché sur la carte`);
+          return; // Ne pas créer de marqueur pour les signalements en attente
+        }
+
+        // Déterminer la classe CSS selon le type stocké ou déduit du titre
+        const typeClass = data.type || (
+          data.title?.toLowerCase().includes('urgent') ? 'urgent' : 
+          data.title?.toLowerCase().includes('information') ? 'info' :
+          data.title?.toLowerCase().includes('info') ? 'info' : 'anomaly'
+        );
 
         const customIcon = L.divIcon({
           className: 'custom-marker',
@@ -419,7 +429,9 @@ const handleReportSubmit = async (reportData: any) => {
     }
     
     const finalData = {
-      title: reportData.type === 'urgent' ? '🚨 Signalement Urgent' : '⚠️ Anomalie Route',
+      title: reportData.type === 'urgent' ? '🚨 Signalement Urgent' : 
+             reportData.type === 'info' ? 'ℹ️ Information' : '⚠️ Anomalie Route',
+      type: reportData.type,  // Stocker le type directement (urgent, anomaly, info)
       description: reportData.description,
       latitude: pickedLocation.value?.lat || 0,
       longitude: pickedLocation.value?.lng || 0,
@@ -542,18 +554,20 @@ onUnmounted(() => { if (map) map.remove(); });
   background: white;
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  z-index: 2000;
+  z-index: 99999;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px) scale(0.95);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  pointer-events: none;
 }
 
 .profile-menu.show {
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);
+  pointer-events: auto;
 }
 
 .profile-backdrop {
@@ -563,15 +577,17 @@ onUnmounted(() => { if (map) map.remove(); });
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.3);
-  z-index: 1999;
+  z-index: 99998;
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
+  pointer-events: none;
 }
 
 .profile-backdrop.show {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 .profile-menu-header {

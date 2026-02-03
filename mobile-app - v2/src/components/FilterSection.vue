@@ -118,6 +118,7 @@ const typeOptions = [
 const statusOptions = [
   { value: 'all', label: 'Tous' },
   { value: 'pending', label: 'En attente' },
+  { value: 'new', label: 'Nouveau' },
   { value: 'in-progress', label: 'En cours' },
   { value: 'resolved', label: 'Résolu' }
 ];
