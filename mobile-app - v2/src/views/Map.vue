@@ -56,6 +56,7 @@
       <ReportModal
         :is-open="isReportModalOpen"
         :user-location="userLocation"
+        :clicked-location="clickedLocation"
         @close="closeReportModal"
         @submit="handleReportSubmit"
       />
@@ -75,7 +76,8 @@ import {
   IonButton,
   IonContent,
   IonIcon,
-  toastController
+  toastController,
+  alertController
 } from '@ionic/vue';
 import {
   listOutline,
@@ -93,14 +95,37 @@ const mapContainer = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
 let userMarker: L.Marker | null = null;
 const userLocation = ref<{ lat: number; lng: number } | null>(null);
+const clickedLocation = ref<{ lat: number; lng: number } | null>(null);
 const isReportModalOpen = ref(false);
 const markers: L.Marker[] = [];
+let clickMarker: L.Marker | null = null;
 
 // Données de test pour les signalements
 const testReports = [
-  { lat: -18.9150, lng: 47.5360, type: 'urgent', description: 'Fuite d\'eau importante' },
-  { lat: -18.9100, lng: 47.5300, type: 'anomaly', description: 'Nid de poule' },
-  { lat: -18.9200, lng: 47.5400, type: 'info', description: 'Travaux en cours' }
+  { 
+    lat: -18.9150, 
+    lng: 47.5360, 
+    type: 'urgent', 
+    description: 'Fuite d\'eau importante',
+    photo: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=300&h=200&fit=crop',
+    date: '02/02/2026 14:30'
+  },
+  { 
+    lat: -18.9100, 
+    lng: 47.5300, 
+    type: 'anomaly', 
+    description: 'Nid de poule dangereux',
+    photo: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=300&h=200&fit=crop',
+    date: '01/02/2026 10:15'
+  },
+  { 
+    lat: -18.9200, 
+    lng: 47.5400, 
+    type: 'info', 
+    description: 'Travaux en cours',
+    photo: '',
+    date: '31/01/2026 09:00'
+  }
 ];
 
 // Initialiser la carte
@@ -115,6 +140,9 @@ const initMap = () => {
     attribution: '© OpenStreetMap contributors',
     maxZoom: 19
   }).addTo(map);
+
+  // Ajouter le gestionnaire de clic sur la carte
+  map.on('click', handleMapClick);
 
   // Ajouter les marqueurs de test
   addTestMarkers();
@@ -151,6 +179,65 @@ const getUserLocation = () => {
   }
 };
 
+// Gérer le clic sur la carte
+const handleMapClick = async (e: L.LeafletMouseEvent) => {
+  const { lat, lng } = e.latlng;
+  
+  // Supprimer l'ancien marqueur temporaire s'il existe
+  if (clickMarker && map) {
+    map.removeLayer(clickMarker);
+  }
+  
+  // Créer un marqueur temporaire à la position cliquée
+  const tempIcon = L.divIcon({
+    className: 'temp-marker',
+    html: '<div class="temp-pin"></div>',
+    iconSize: [30, 42],
+    iconAnchor: [15, 42]
+  });
+  
+  clickMarker = L.marker([lat, lng], { icon: tempIcon }).addTo(map!);
+  
+  // Afficher la confirmation
+  await confirmAddReport(lat, lng);
+};
+
+// Confirmer l'ajout d'un signalement
+const confirmAddReport = async (lat: number, lng: number) => {
+  const alert = await alertController.create({
+    header: 'Nouveau signalement 📍',
+    message: `Voulez-vous ajouter un signalement à cette position ?`,
+    cssClass: 'cute-alert',
+    buttons: [
+      {
+        text: 'Annuler',
+        role: 'cancel',
+        handler: () => {
+          // Supprimer le marqueur temporaire
+          if (clickMarker && map) {
+            map.removeLayer(clickMarker);
+            clickMarker = null;
+          }
+        }
+      },
+      {
+        text: 'Ajouter',
+        handler: () => {
+          // Supprimer le marqueur temporaire
+          if (clickMarker && map) {
+            map.removeLayer(clickMarker);
+            clickMarker = null;
+          }
+          // Stocker la position cliquée et ouvrir le modal
+          clickedLocation.value = { lat, lng };
+          isReportModalOpen.value = true;
+        }
+      }
+    ]
+  });
+  await alert.present();
+};
+
 // Recentrer la carte
 const recenterMap = () => {
   if (map && userLocation.value) {
@@ -176,17 +263,41 @@ const addTestMarkers = () => {
       popupAnchor: [0, -42]
     });
 
+    // Créer le contenu du popup avec photo
+    const popupContent = createPopupContent(report);
+
     const marker = L.marker([report.lat, report.lng], { icon: customIcon })
       .addTo(map!)
-      .bindPopup(`
-        <div class="marker-popup">
-          <h4>${getTypeLabel(report.type)}</h4>
-          <p>${report.description}</p>
-        </div>
-      `);
+      .bindPopup(popupContent, {
+        maxWidth: 280,
+        className: 'custom-popup'
+      });
+
+    // Ouvrir le popup au survol
+    marker.on('mouseover', function() {
+      this.openPopup();
+    });
 
     markers.push(marker);
   });
+};
+
+// Créer le contenu du popup
+const createPopupContent = (report: any): string => {
+  const photoHtml = report.photo 
+    ? `<div class="popup-photo"><img src="${report.photo}" alt="Photo du signalement" /></div>`
+    : '';
+  
+  return `
+    <div class="marker-popup">
+      ${photoHtml}
+      <div class="popup-content">
+        <div class="popup-badge ${report.type}">${getTypeLabel(report.type)}</div>
+        <p class="popup-description">${report.description}</p>
+        <div class="popup-date">📅 ${report.date}</div>
+      </div>
+    </div>
+  `;
 };
 
 // Obtenir la couleur du marqueur
@@ -211,12 +322,14 @@ const getTypeLabel = (type: string): string => {
 
 // Ouvrir le modal de signalement
 const openReportModal = () => {
+  clickedLocation.value = null; // Réinitialiser la position cliquée
   isReportModalOpen.value = true;
 };
 
 // Fermer le modal de signalement
 const closeReportModal = () => {
   isReportModalOpen.value = false;
+  clickedLocation.value = null; // Réinitialiser la position cliquée
 };
 
 // Gérer la soumission d'un signalement
@@ -231,17 +344,30 @@ const handleReportSubmit = async (reportData: any) => {
       className: 'custom-marker',
       html: `<div class="marker-pin ${reportData.type}"></div>`,
       iconSize: [30, 42],
-      iconAnchor: [15, 42]
+      iconAnchor: [15, 42],
+      popupAnchor: [0, -42]
+    });
+
+    // Créer le contenu du popup avec photo
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    
+    const popupContent = createPopupContent({
+      ...reportData,
+      date: dateStr
     });
 
     const marker = L.marker([reportData.location.lat, reportData.location.lng], { icon: customIcon })
       .addTo(map)
-      .bindPopup(`
-        <div class="marker-popup">
-          <h4>${getTypeLabel(reportData.type)}</h4>
-          <p>${reportData.description}</p>
-        </div>
-      `);
+      .bindPopup(popupContent, {
+        maxWidth: 280,
+        className: 'custom-popup'
+      });
+
+    // Ouvrir le popup au survol
+    marker.on('mouseover', function() {
+      this.openPopup();
+    });
 
     markers.push(marker);
   }
@@ -429,20 +555,144 @@ onUnmounted(() => {
   background: #B0E0E6;
 }
 
-.marker-popup {
-  padding: 10px;
+/* Styles du popup personnalisé */
+.custom-popup .leaflet-popup-content-wrapper {
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
-.marker-popup h4 {
-  margin: 0 0 5px 0;
-  font-size: 14px;
+.custom-popup .leaflet-popup-content {
+  margin: 0;
+  min-width: 200px;
+}
+
+.custom-popup .leaflet-popup-tip {
+  background: white;
+}
+
+.marker-popup {
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.popup-photo {
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.popup-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.popup-content {
+  padding: 12px 14px;
+}
+
+.popup-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.popup-badge.urgent {
+  background: #FFB3BA;
+  color: white;
+}
+
+.popup-badge.anomaly {
+  background: #FFD8A8;
   color: #5a5a5a;
 }
 
-.marker-popup p {
-  margin: 0;
-  font-size: 12px;
+.popup-badge.info {
+  background: #B0E0E6;
+  color: #5a5a5a;
+}
+
+.popup-description {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #5a5a5a;
+  line-height: 1.4;
+}
+
+.popup-date {
+  font-size: 11px;
   color: #999;
+}
+
+/* Marqueur temporaire pour le clic */
+.temp-marker {
+  background: transparent;
+  border: none;
+}
+
+.temp-pin {
+  width: 30px;
+  height: 42px;
+  border-radius: 50% 50% 50% 0;
+  position: relative;
+  transform: rotate(-45deg);
+  background: linear-gradient(135deg, #DDA0DD, #FFB6C1);
+  box-shadow: 0 4px 15px rgba(221, 160, 221, 0.5);
+  animation: bounce 0.5s ease;
+}
+
+.temp-pin::after {
+  content: '';
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: rotate(-45deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-45deg) translateY(-10px);
+  }
+}
+
+/* Style pour l'alerte de confirmation */
+.cute-alert {
+  --background: #FFF5F7;
+  --border-radius: 20px;
+}
+
+.cute-alert .alert-head {
+  text-align: center;
+}
+
+.cute-alert .alert-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #5a5a5a;
+}
+
+.cute-alert .alert-message {
+  text-align: center;
+  color: #777;
+}
+
+.cute-alert .alert-button {
+  border-radius: 15px !important;
+  font-weight: 600;
 }
 
 /* Fix pour les icônes Leaflet manquantes */

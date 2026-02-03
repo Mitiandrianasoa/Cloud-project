@@ -130,14 +130,25 @@
           </div>
           <p v-if="errors.terms" class="error-text">{{ errors.terms }}</p>
 
+          <!-- Messages d'état -->
+          <ion-text color="danger" v-if="error">
+            {{ error }}
+          </ion-text>
+
+          <ion-text color="success" v-if="success">
+            {{ success }}
+          </ion-text>
+
           <!-- Bouton Inscription -->
           <ion-button
             expand="block"
             class="cute-button register-button"
             @click="register"
+            :disabled="isLoading"
           >
-            <ion-icon slot="start" :icon="personAddOutline"></ion-icon>
-            Créer mon compte
+            <ion-spinner v-if="isLoading" name="crescent" class="button-spinner"></ion-spinner>
+            <ion-icon v-else slot="start" :icon="personAddOutline"></ion-icon>
+            {{ isLoading ? 'Inscription en cours...' : 'Créer mon compte' }}
           </ion-button>
 
           <!-- Lien vers connexion -->
@@ -165,8 +176,10 @@ import {
   IonInput,
   IonIcon,
   IonCheckbox,
-  toastController,
-  alertController
+  IonText,
+  IonSpinner,
+  alertController,
+  loadingController
 } from '@ionic/vue';
 import {
   arrowBackOutline,
@@ -175,6 +188,11 @@ import {
   eyeOffOutline,
   personAddOutline
 } from 'ionicons/icons';
+
+// Importez les fonctions Firebase de votre première page
+import { auth, db } from '../firebase/config';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 const router = useRouter();
 
@@ -189,6 +207,9 @@ const acceptTerms = ref(false);
 
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+const isLoading = ref(false);
+const error = ref('');
+const success = ref('');
 
 // Erreurs de validation
 const errors = ref({
@@ -270,8 +291,10 @@ const validateConfirmPassword = () => {
 
 const validateForm = () => {
   let isValid = true;
+  error.value = '';
+  success.value = '';
 
-  if (!fullName.value) {
+  if (!fullName.value.trim()) {
     errors.value.fullName = 'Nom complet requis';
     isValid = false;
   } else {
@@ -300,54 +323,117 @@ const validateForm = () => {
 // Prendre une photo
 const takePicture = async () => {
   // TODO: Implémenter Capacitor Camera
-  console.log('Prendre une photo');
-  
-  const toast = await toastController.create({
+  const alert = await alertController.create({
+    header: 'Photo de profil',
     message: 'Fonctionnalité caméra à implémenter 📸',
-    duration: 2000,
-    color: 'tertiary',
-    position: 'top'
+    buttons: ['OK']
   });
-  await toast.present();
+  await alert.present();
 };
 
-// Inscription
+// FONCTION D'INSCRIPTION - Même que votre première page
 const register = async () => {
+  // Réinitialiser les messages
+  error.value = '';
+  success.value = '';
+  
+  // Validation du formulaire
   if (!validateForm()) {
-    const toast = await toastController.create({
-      message: 'Veuillez corriger les erreurs 📝',
-      duration: 2000,
-      color: 'warning',
-      position: 'top'
-    });
-    await toast.present();
+    error.value = 'Veuillez corriger les erreurs dans le formulaire';
     return;
   }
 
-  // TODO: Implémenter l'inscription Firebase
-  console.log('Inscription:', {
-    fullName: fullName.value,
-    email: email.value,
-    phone: phone.value,
-    profilePicture: profilePicture.value
-  });
+  // Vérification des mots de passe
+  if (password.value !== confirmPassword.value) {
+    error.value = "Les mots de passe ne correspondent pas";
+    return;
+  }
 
-  const toast = await toastController.create({
-    message: 'Compte créé avec succès ! 🎉',
-    duration: 2000,
-    color: 'success',
-    position: 'top'
-  });
-  await toast.present();
+  isLoading.value = true;
 
-  router.push('/map');
+  try {
+    // Afficher le loading
+    const loading = await loadingController.create({
+      message: 'Création du compte...',
+      spinner: 'crescent'
+    });
+    await loading.present();
+
+    // 1. Créer l'utilisateur dans Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email.value,
+      password.value
+    );
+
+    const user = userCredential.user;
+
+    // 2. Créer le document utilisateur dans Firestore
+    await setDoc(doc(db, "users", user.uid), {
+      fullName: fullName.value,
+      email: user.email,
+      phone: phone.value || '',
+      profilePicture: profilePicture.value || '',
+      createdAt: new Date().toISOString(),
+      emailVerified: false,
+      role: 'user'
+    });
+
+    // 3. Envoyer l'email de vérification
+    await sendEmailVerification(user);
+
+    await loading.dismiss();
+
+    // 4. Afficher le message de succès
+    success.value = "Compte créé avec succès ! Un email de vérification a été envoyé à votre adresse. Vérifiez votre boîte mail avant de vous connecter.";
+
+    // Optionnel : Redirection après un délai
+    setTimeout(() => {
+      router.push('/login');
+    }, 3000);
+
+  } catch (err: any) {
+    isLoading.value = false;
+    
+    // Gestion des erreurs Firebase
+    let errorMessage = 'Erreur lors de l\'inscription';
+    
+    switch (err.code) {
+      case 'auth/email-already-in-use':
+        errorMessage = 'Cet email est déjà utilisé';
+        break;
+      case 'auth/invalid-email':
+        errorMessage = 'Email invalide';
+        break;
+      case 'auth/operation-not-allowed':
+        errorMessage = 'L\'inscription par email est désactivée';
+        break;
+      case 'auth/weak-password':
+        errorMessage = 'Mot de passe trop faible (minimum 6 caractères)';
+        break;
+      case 'auth/network-request-failed':
+        errorMessage = 'Erreur réseau. Vérifiez votre connexion';
+        break;
+      default:
+        errorMessage = err.message || 'Erreur lors de l\'inscription';
+    }
+    
+    error.value = errorMessage;
+    
+    // Dismiss le loading s'il existe encore
+    try {
+      await loadingController.dismiss();
+    } catch (e) {
+      // Ignorer si le loading n'existe pas
+    }
+  }
 };
 
 // Afficher les conditions
 const showTerms = async () => {
   const alert = await alertController.create({
     header: 'Conditions d\'utilisation',
-    message: 'Ici seront affichées les conditions d\'utilisation de l\'application.',
+    message: 'En créant un compte, vous acceptez nos conditions d\'utilisation et notre politique de confidentialité.',
     buttons: ['OK']
   });
   await alert.present();
@@ -556,6 +642,27 @@ const goToLogin = () => {
   text-decoration: underline;
 }
 
+/* Messages d'état */
+ion-text[color="danger"],
+ion-text[color="success"] {
+  display: block;
+  margin: 15px 0;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+ion-text[color="danger"] {
+  background-color: #FFEBEE;
+  border: 1px solid #FFCDD2;
+}
+
+ion-text[color="success"] {
+  background-color: #E8F5E9;
+  border: 1px solid #C8E6C9;
+}
+
 .register-button {
   --background: linear-gradient(90deg, #DDA0DD, #B0E0E6);
   --border-radius: 30px;
@@ -564,11 +671,26 @@ const goToLogin = () => {
   font-weight: 600;
   font-size: 16px;
   margin-top: 20px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.register-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button-spinner {
+  color: white;
+  width: 20px;
+  height: 20px;
 }
 
 .login-link {
   text-align: center;
   margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .login-link p {
@@ -587,5 +709,37 @@ const goToLogin = () => {
 
 .link-text-bold:hover {
   text-decoration: underline;
+}
+
+/* Animation de fond */
+.gradient-bg {
+  background: linear-gradient(135deg, #FFF0F5 0%, #F8F0FF 100%);
+  min-height: 100vh;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .register-container {
+    padding: 16px;
+    padding-bottom: 30px;
+  }
+  
+  .profile-picture-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .form-card {
+    padding: 20px;
+  }
+  
+  .form-title {
+    font-size: 22px;
+  }
+  
+  .register-button {
+    height: 48px;
+    font-size: 15px;
+  }
 }
 </style>
