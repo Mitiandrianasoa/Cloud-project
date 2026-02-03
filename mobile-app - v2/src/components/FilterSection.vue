@@ -147,77 +147,92 @@ watch(
 
 <style scoped>
 .filter-section {
-  margin: 15px;
+  margin: 16px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .filter-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 18px;
 }
 
 .filter-title {
-  font-size: 16px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
   font-weight: 600;
-  color: #5a5a5a;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .reset-button {
   background: none;
   border: none;
-  color: var(--ion-color-primary);
-  font-size: 13px;
+  color: var(--primary);
+  font-size: 0.813rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 8px;
-  transition: background 0.3s ease;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.reset-button:hover {
+  background: rgba(99, 102, 241, 0.1);
 }
 
 .reset-button:active {
-  background: #ffe4e9;
+  background: rgba(99, 102, 241, 0.15);
 }
 
 .filters-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 18px;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .filter-label {
-  font-size: 13px;
+  font-size: 0.813rem;
   font-weight: 600;
-  color: #5a5a5a;
-  padding-left: 5px;
+  color: var(--text-secondary);
+  padding-left: 4px;
 }
 
 .filter-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .filter-chip {
-  background: white;
-  border: 2px solid #ffe4e9;
-  border-radius: 20px;
-  padding: 8px 16px;
+  background: var(--gray-50);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-full);
+  padding: 8px 18px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 13px;
+  transition: all var(--transition-base);
+  font-size: 0.813rem;
   font-weight: 500;
-  color: #5a5a5a;
+  color: var(--text-secondary);
+}
+
+.filter-chip:hover {
+  border-color: var(--border-default);
+  background: var(--surface);
 }
 
 .filter-chip:active {
@@ -225,14 +240,14 @@ watch(
 }
 
 .filter-chip.active {
-  background: linear-gradient(90deg, #FFB6C1, #DDA0DD);
+  background: var(--gradient-primary);
   border-color: transparent;
   color: white;
-  box-shadow: 0 2px 8px rgba(255, 182, 193, 0.3);
+  box-shadow: var(--shadow-primary);
 }
 
 .chip-icon {
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .chip-label {

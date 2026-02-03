@@ -495,28 +495,28 @@ watch(() => props.isOpen, (isOpen) => {
 
 <style scoped>
 .modal-content {
-  padding: 20px;
+  padding: 24px;
   padding-bottom: 40px;
 }
 
 /* Location Card */
 .location-card {
-  background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 24px;
-  border: 2px solid #A5D6A7;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+  border-radius: var(--radius-xl);
+  padding: 18px;
+  margin-bottom: 28px;
+  border: 2px solid rgba(16, 185, 129, 0.2);
 }
 
 .location-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .location-card-icon {
   font-size: 32px;
-  color: #4CAF50;
+  color: var(--success);
 }
 
 .location-info {
@@ -525,46 +525,54 @@ watch(() => props.isOpen, (isOpen) => {
 }
 
 .location-label {
-  font-size: 12px;
-  color: #666;
+  font-size: 0.75rem;
+  color: var(--text-muted);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .location-coords {
-  font-size: 14px;
-  color: #2E7D32;
+  font-size: 0.875rem;
+  color: var(--success);
   font-weight: 600;
-  font-family: monospace;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
 }
 
 .form-section {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .section-title {
-  font-size: 15px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.938rem;
   font-weight: 600;
-  color: #5a5a5a;
-  margin-bottom: 12px;
+  color: var(--text-primary);
+  margin-bottom: 14px;
 }
 
 .type-buttons {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
 }
 
 .type-button {
-  background: white;
-  border: 2px solid #ffe4e9;
-  border-radius: 16px;
-  padding: 16px 8px;
+  background: var(--surface);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: 18px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
+}
+
+.type-button:hover {
+  border-color: var(--border-default);
+  background: var(--gray-50);
 }
 
 .type-button:active {
@@ -574,22 +582,22 @@ watch(() => props.isOpen, (isOpen) => {
 .type-button.active {
   border-color: transparent;
   transform: scale(1.02);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .type-button.active.urgent {
-  background: linear-gradient(135deg, #FFB3BA, #FF8A9A);
-  color: white;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
 }
 
 .type-button.active.anomaly {
-  background: linear-gradient(135deg, #FFD8A8, #FFBE7A);
-  color: white;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--warning);
 }
 
 .type-button.active.info {
-  background: linear-gradient(135deg, #B0E0E6, #87CEEB);
-  color: white;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--info);
 }
 
 .type-icon {
@@ -597,27 +605,36 @@ watch(() => props.isOpen, (isOpen) => {
 }
 
 .type-label {
-  font-size: 13px;
+  font-size: 0.813rem;
   font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.type-button.active .type-label {
+  color: var(--text-primary);
 }
 
 .urgency-levels {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
 }
 
 .urgency-button {
-  background: white;
-  border: 2px solid #ffe4e9;
-  border-radius: 16px;
-  padding: 14px 8px;
+  background: var(--surface);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: 16px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
+}
+
+.urgency-button:hover {
+  border-color: var(--border-default);
 }
 
 .urgency-button:active {
@@ -625,57 +642,61 @@ watch(() => props.isOpen, (isOpen) => {
 }
 
 .urgency-button.active {
-  border-color: var(--ion-color-primary);
+  border-color: var(--primary);
   transform: scale(1.03);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  background: rgba(99, 102, 241, 0.05);
 }
 
 .urgency-number {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 700;
   color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-sm);
 }
 
 .urgency-label {
-  font-size: 12px;
-  color: #5a5a5a;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
 .cute-textarea {
-  --background: white;
-  --border-radius: 16px;
-  --padding-start: 16px;
-  --padding-top: 14px;
-  border: 2px solid #ffe4e9;
-  border-radius: 16px;
-  transition: all 0.3s ease;
+  --background: var(--gray-50);
+  --border-radius: var(--radius-lg);
+  --padding-start: 18px;
+  --padding-top: 16px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  font-size: 0.938rem;
 }
 
 .cute-textarea:focus-within {
-  border-color: var(--ion-color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 182, 193, 0.1);
+  border-color: var(--primary);
+  --background: var(--surface);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .photos-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 14px;
 }
 
 .photo-preview {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 2px solid #ffe4e9;
+  border: 2px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .photo-preview img {
@@ -686,73 +707,87 @@ watch(() => props.isOpen, (isOpen) => {
 
 .remove-photo {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.95);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
+}
+
+.remove-photo:hover {
+  transform: scale(1.1);
+  background: white;
 }
 
 .remove-photo ion-icon {
   font-size: 20px;
-  color: #FFB3BA;
+  color: var(--danger);
 }
 
 .add-photo-button {
   aspect-ratio: 1;
-  border-radius: 14px;
-  border: 2px dashed #FFB6C1;
-  background: linear-gradient(135deg, #FFF5F7, #FFF0F5);
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--border-default);
+  background: var(--gray-50);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
+}
+
+.add-photo-button:hover {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.05);
 }
 
 .add-photo-button:active {
   transform: scale(0.95);
-  background: linear-gradient(135deg, #FFE4E9, #FFD8E4);
 }
 
 .add-photo-button ion-icon {
   font-size: 32px;
-  color: #FFB6C1;
+  color: var(--primary);
 }
 
 .add-photo-button span {
-  font-size: 11px;
-  color: #FFB6C1;
+  font-size: 0.75rem;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 .location-options {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .location-button {
-  background: white;
-  border: 2px solid #ffe4e9;
-  border-radius: 14px;
-  padding: 14px 10px;
+  background: var(--surface);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
+}
+
+.location-button:hover {
+  border-color: var(--border-default);
 }
 
 .location-button:active {
@@ -761,48 +796,53 @@ watch(() => props.isOpen, (isOpen) => {
 
 .location-button.active {
   border-color: transparent;
-  background: linear-gradient(135deg, #B0E0E6, #98D8C8);
-  color: white;
-  box-shadow: 0 4px 12px rgba(152, 216, 200, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
+  box-shadow: var(--shadow-sm);
+}
+
+.location-button.active ion-icon {
+  color: var(--success);
 }
 
 .location-button ion-icon {
   font-size: 26px;
+  color: var(--text-muted);
 }
 
 .location-button span {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .location-preview {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  background: #f8f9fa;
-  border: 2px solid #ffe4e9;
-  border-radius: 12px;
-  font-size: 13px;
-  color: #5a5a5a;
-  font-family: monospace;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--gray-50);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  font-size: 0.813rem;
+  color: var(--text-secondary);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
 }
 
 .location-preview ion-icon {
   font-size: 20px;
-  color: var(--ion-color-primary);
+  color: var(--primary);
 }
 
 /* Responsive */
 @media (max-width: 380px) {
   .type-buttons,
   .urgency-levels {
-    gap: 8px;
+    gap: 10px;
   }
   
   .type-button,
   .urgency-button {
-    padding: 12px 6px;
+    padding: 14px 8px;
   }
   
   .type-icon {
@@ -810,9 +850,9 @@ watch(() => props.isOpen, (isOpen) => {
   }
   
   .urgency-number {
-    width: 38px;
-    height: 38px;
-    font-size: 16px;
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
   }
 }
 
@@ -829,47 +869,50 @@ watch(() => props.isOpen, (isOpen) => {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  backdrop-filter: blur(8px);
 }
 
 .webcam-container {
-  background: white;
-  border-radius: 20px;
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   max-width: 500px;
   width: 100%;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
 }
 
 .webcam-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #FFB6C1, #DDA0DD);
+  padding: 18px 22px;
+  background: var(--gradient-primary);
 }
 
 .webcam-header h3 {
   margin: 0;
   color: white;
-  font-size: 18px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
 .webcam-close {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  border-radius: var(--radius-full);
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast);
 }
 
 .webcam-close:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
 }
 
 .webcam-close ion-icon {
@@ -886,28 +929,29 @@ watch(() => props.isOpen, (isOpen) => {
 }
 
 .webcam-controls {
-  padding: 20px;
+  padding: 24px;
   display: flex;
   justify-content: center;
-  background: #f8f9fa;
+  background: var(--gray-50);
 }
 
 .capture-btn {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #FFB6C1, #FF8A9A);
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  background: var(--gradient-primary);
   border: 4px solid white;
-  box-shadow: 0 4px 15px rgba(255, 138, 154, 0.4);
+  box-shadow: var(--shadow-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
 }
 
 .capture-btn:hover {
   transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
 }
 
 .capture-btn:active {

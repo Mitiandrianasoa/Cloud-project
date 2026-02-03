@@ -2,7 +2,19 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
+        <!-- Menu/Profile à gauche -->
+        <ion-buttons slot="start">
+          <ion-button @click="toggleProfileMenu" class="profile-btn">
+            <div class="profile-avatar" v-if="currentUser">
+              <img v-if="currentUser.photoURL" :src="currentUser.photoURL" alt="Profile" />
+              <ion-icon v-else :icon="personCircleOutline"></ion-icon>
+            </div>
+            <ion-icon v-else :icon="personCircleOutline" size="large"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+
         <ion-title>Safe Roads</ion-title>
+
         <ion-buttons slot="end">
           <ion-button @click="goToReports">
             <ion-icon :icon="listOutline"></ion-icon>
@@ -10,6 +22,65 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
+
+    <!-- Menu Profil Overlay -->
+    <div v-if="showProfileMenu" class="profile-overlay" @click="closeProfileMenu">
+      <div class="profile-menu" @click.stop>
+        <!-- Header du profil -->
+        <div class="profile-header">
+          <div class="profile-avatar-large">
+            <img v-if="currentUser?.photoURL" :src="currentUser.photoURL" alt="Profile" />
+            <ion-icon v-else :icon="personCircleOutline"></ion-icon>
+          </div>
+          <div class="profile-info">
+            <h3 class="profile-name">{{ currentUser?.displayName || 'Utilisateur' }}</h3>
+            <p class="profile-email">{{ currentUser?.email || 'Non connecté' }}</p>
+            <span class="connection-status" :class="{ connected: isConnected, guest: !isConnected }">
+              <span class="status-dot"></span>
+              {{ isConnected ? 'Connecté' : 'Mode invité' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions du menu -->
+        <div class="profile-actions">
+          <button v-if="isConnected" class="menu-item" @click="goToProfile">
+            <ion-icon :icon="personOutline"></ion-icon>
+            <span>Mon profil</span>
+            <ion-icon :icon="chevronForwardOutline" class="chevron"></ion-icon>
+          </button>
+
+          <button class="menu-item" @click="goToReports">
+            <ion-icon :icon="documentTextOutline"></ion-icon>
+            <span>Mes signalements</span>
+            <ion-icon :icon="chevronForwardOutline" class="chevron"></ion-icon>
+          </button>
+
+          <button v-if="isConnected" class="menu-item" @click="goToSettings">
+            <ion-icon :icon="settingsOutline"></ion-icon>
+            <span>Paramètres</span>
+            <ion-icon :icon="chevronForwardOutline" class="chevron"></ion-icon>
+          </button>
+
+          <div class="menu-divider"></div>
+
+          <button v-if="isConnected" class="menu-item logout" @click="handleLogout">
+            <ion-icon :icon="logOutOutline"></ion-icon>
+            <span>Se déconnecter</span>
+          </button>
+
+          <button v-else class="menu-item login" @click="goToLogin">
+            <ion-icon :icon="logInOutline"></ion-icon>
+            <span>Se connecter</span>
+          </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="profile-footer">
+          <p>Safe Roads v1.0</p>
+        </div>
+      </div>
+    </div>
 
     <ion-content :fullscreen="true">
       <!-- Carte Leaflet -->
@@ -65,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -82,13 +153,32 @@ import {
 import {
   listOutline,
   locateOutline,
-  warningOutline
+  warningOutline,
+  personCircleOutline,
+  personOutline,
+  documentTextOutline,
+  settingsOutline,
+  logOutOutline,
+  logInOutline,
+  chevronForwardOutline
 } from 'ionicons/icons';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import ReportModal from '../components/ReportModal.vue';
+import { auth } from '../firebase/config';
+import { signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 const router = useRouter();
+
+// État utilisateur
+const currentUser = ref<User | null>(null);
+const isConnected = computed(() => currentUser.value !== null);
+const showProfileMenu = ref(false);
+
+// Écouter l'état d'authentification
+onAuthStateChanged(auth, (user) => {
+  currentUser.value = user;
+});
 
 // État
 const mapContainer = ref<HTMLElement | null>(null);
@@ -378,7 +468,66 @@ const handleReportSubmit = async (reportData: any) => {
 
 // Aller vers la liste des signalements
 const goToReports = () => {
+  showProfileMenu.value = false;
   router.push('/reports');
+};
+
+// Toggle menu profil
+const toggleProfileMenu = () => {
+  showProfileMenu.value = !showProfileMenu.value;
+};
+
+// Fermer menu profil
+const closeProfileMenu = () => {
+  showProfileMenu.value = false;
+};
+
+// Aller au profil
+const goToProfile = () => {
+  showProfileMenu.value = false;
+  // TODO: Implémenter la page profil
+  showToast('Page profil à venir', 'primary');
+};
+
+// Aller aux paramètres
+const goToSettings = () => {
+  showProfileMenu.value = false;
+  // TODO: Implémenter la page paramètres
+  showToast('Page paramètres à venir', 'primary');
+};
+
+// Aller à la connexion
+const goToLogin = () => {
+  showProfileMenu.value = false;
+  router.push('/login');
+};
+
+// Déconnexion
+const handleLogout = async () => {
+  const alert = await alertController.create({
+    header: 'Déconnexion',
+    message: 'Voulez-vous vraiment vous déconnecter ?',
+    buttons: [
+      {
+        text: 'Annuler',
+        role: 'cancel'
+      },
+      {
+        text: 'Déconnecter',
+        role: 'destructive',
+        handler: async () => {
+          try {
+            await signOut(auth);
+            showProfileMenu.value = false;
+            showToast('Déconnexion réussie', 'success');
+          } catch (error) {
+            showToast('Erreur lors de la déconnexion', 'danger');
+          }
+        }
+      }
+    ]
+  });
+  await alert.present();
 };
 
 // Afficher un toast
@@ -406,6 +555,245 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Profile Button dans le header */
+.profile-btn {
+  --padding-start: 4px;
+  --padding-end: 4px;
+}
+
+.profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-100);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar ion-icon {
+  font-size: 32px;
+  color: var(--primary);
+}
+
+/* Overlay du menu profil */
+.profile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Menu profil */
+.profile-menu {
+  position: absolute;
+  top: 60px;
+  left: 16px;
+  width: calc(100% - 32px);
+  max-width: 320px;
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header du profil */
+.profile-header {
+  background: var(--gradient-primary);
+  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-avatar-large {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-large ion-icon {
+  font-size: 56px;
+  color: white;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  color: white;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-email {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.813rem;
+  margin: 0 0 8px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.connection-status .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  animation: pulse-dot 2s infinite;
+}
+
+.connection-status.guest .status-dot {
+  background: #F59E0B;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Actions du menu */
+.profile-actions {
+  padding: 12px 8px;
+}
+
+.menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 0.938rem;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.menu-item:hover {
+  background: var(--gray-100);
+}
+
+.menu-item:active {
+  transform: scale(0.98);
+}
+
+.menu-item ion-icon {
+  font-size: 22px;
+  color: var(--text-secondary);
+}
+
+.menu-item span {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+}
+
+.menu-item .chevron {
+  font-size: 18px;
+  color: var(--text-muted);
+}
+
+.menu-item.logout {
+  color: var(--danger);
+}
+
+.menu-item.logout ion-icon {
+  color: var(--danger);
+}
+
+.menu-item.login {
+  color: var(--primary);
+}
+
+.menu-item.login ion-icon {
+  color: var(--primary);
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 8px 16px;
+}
+
+/* Footer du menu */
+.profile-footer {
+  padding: 12px 20px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--border-light);
+}
+
+.profile-footer p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Carte */
 #map {
   width: 100%;
   height: 100%;
@@ -419,27 +807,44 @@ onUnmounted(() => {
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .control-button {
-  --border-radius: 25px;
-  --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  height: 50px;
+  --border-radius: var(--radius-xl);
+  --box-shadow: var(--shadow-lg);
+  height: 52px;
   font-weight: 600;
+  transition: all var(--transition-base);
+}
+
+.control-button:hover {
+  transform: translateY(-2px);
+  --box-shadow: var(--shadow-xl);
 }
 
 .recenter-button {
-  --background: white;
-  --color: var(--ion-color-primary);
-  width: 50px;
+  --background: var(--surface);
+  --color: var(--primary);
+  width: 52px;
   align-self: flex-end;
+  border: 2px solid var(--border-light);
+}
+
+.recenter-button:hover {
+  --background: var(--gray-50);
+  border-color: var(--primary);
 }
 
 .report-button {
-  --background: linear-gradient(90deg, #FFB6C1, #DDA0DD);
+  --background: var(--gradient-primary);
   --color: white;
-  padding: 0 20px;
+  padding: 0 24px;
+  --box-shadow: var(--shadow-primary);
+}
+
+.report-button:hover {
+  --box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
 }
 
 .map-legend {
@@ -447,44 +852,53 @@ onUnmounted(() => {
   top: 80px;
   left: 20px;
   z-index: 1000;
-  background: white;
-  padding: 15px;
-  min-width: 150px;
+  background: var(--surface);
+  padding: 16px 20px;
+  min-width: 160px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
 }
 
 .map-legend h4 {
-  margin: 0 0 10px 0;
-  font-size: 14px;
+  margin: 0 0 14px 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
   font-weight: 600;
-  color: #5a5a5a;
+  color: var(--text-primary);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: #5a5a5a;
+  margin-bottom: 10px;
+  font-size: 0.813rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
 }
 
 .legend-marker {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  margin-right: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  margin-right: 12px;
+  box-shadow: var(--shadow-sm);
 }
 
 .legend-marker.urgent {
-  background: #FFB3BA;
+  background: var(--danger);
 }
 
 .legend-marker.anomaly {
-  background: #FFD8A8;
+  background: var(--warning);
 }
 
 .legend-marker.info {
-  background: #B0E0E6;
+  background: var(--info);
 }
 </style>
 
@@ -496,24 +910,24 @@ onUnmounted(() => {
 }
 
 .user-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #4A90E2;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: var(--primary);
   border: 3px solid white;
-  box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
   }
   50% {
-    box-shadow: 0 0 20px rgba(74, 144, 226, 0.8);
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.8);
   }
   100% {
-    box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
   }
 }
 
@@ -523,19 +937,19 @@ onUnmounted(() => {
 }
 
 .marker-pin {
-  width: 30px;
-  height: 42px;
+  width: 32px;
+  height: 44px;
   border-radius: 50% 50% 50% 0;
   position: relative;
   transform: rotate(-45deg);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .marker-pin::after {
   content: '';
   width: 18px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   position: absolute;
   top: 50%;
   left: 50%;
@@ -544,28 +958,29 @@ onUnmounted(() => {
 }
 
 .marker-pin.urgent {
-  background: #FFB3BA;
+  background: var(--danger);
 }
 
 .marker-pin.anomaly {
-  background: #FFD8A8;
+  background: var(--warning);
 }
 
 .marker-pin.info {
-  background: #B0E0E6;
+  background: var(--info);
 }
 
 /* Styles du popup personnalisé */
 .custom-popup .leaflet-popup-content-wrapper {
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: 0;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-light);
 }
 
 .custom-popup .leaflet-popup-content {
   margin: 0;
-  min-width: 200px;
+  min-width: 220px;
 }
 
 .custom-popup .leaflet-popup-tip {
@@ -574,14 +989,14 @@ onUnmounted(() => {
 
 .marker-popup {
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .popup-photo {
   width: 100%;
   height: 140px;
   overflow: hidden;
-  background: #f0f0f0;
+  background: var(--gray-100);
 }
 
 .popup-photo img {
@@ -592,43 +1007,47 @@ onUnmounted(() => {
 }
 
 .popup-content {
-  padding: 12px 14px;
+  padding: 14px 16px;
 }
 
 .popup-badge {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.688rem;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .popup-badge.urgent {
-  background: #FFB3BA;
-  color: white;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
 }
 
 .popup-badge.anomaly {
-  background: #FFD8A8;
-  color: #5a5a5a;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
 }
 
 .popup-badge.info {
-  background: #B0E0E6;
-  color: #5a5a5a;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--info);
 }
 
 .popup-description {
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  color: #5a5a5a;
-  line-height: 1.4;
+  margin: 0 0 10px 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-weight: 500;
 }
 
 .popup-date {
-  font-size: 11px;
-  color: #999;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 /* Marqueur temporaire pour le clic */
@@ -638,13 +1057,13 @@ onUnmounted(() => {
 }
 
 .temp-pin {
-  width: 30px;
-  height: 42px;
+  width: 32px;
+  height: 44px;
   border-radius: 50% 50% 50% 0;
   position: relative;
   transform: rotate(-45deg);
-  background: linear-gradient(135deg, #DDA0DD, #FFB6C1);
-  box-shadow: 0 4px 15px rgba(221, 160, 221, 0.5);
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-primary);
   animation: bounce 0.5s ease;
 }
 
@@ -652,7 +1071,7 @@ onUnmounted(() => {
   content: '';
   width: 18px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   position: absolute;
   top: 50%;
   left: 50%;
@@ -671,8 +1090,8 @@ onUnmounted(() => {
 
 /* Style pour l'alerte de confirmation */
 .cute-alert {
-  --background: #FFF5F7;
-  --border-radius: 20px;
+  --background: var(--surface);
+  --border-radius: var(--radius-2xl);
 }
 
 .cute-alert .alert-head {
@@ -680,18 +1099,19 @@ onUnmounted(() => {
 }
 
 .cute-alert .alert-title {
-  font-size: 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.125rem;
   font-weight: 600;
-  color: #5a5a5a;
+  color: var(--text-primary);
 }
 
 .cute-alert .alert-message {
   text-align: center;
-  color: #777;
+  color: var(--text-secondary);
 }
 
 .cute-alert .alert-button {
-  border-radius: 15px !important;
+  border-radius: var(--radius-lg) !important;
   font-weight: 600;
 }
 

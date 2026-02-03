@@ -88,6 +88,17 @@
             {{ isLoading ? 'Connexion en cours...' : 'Se connecter' }}
           </ion-button>
 
+          <!-- Bouton Rester déconnecté -->
+          <ion-button
+            expand="block"
+            fill="outline"
+            class="guest-button"
+            @click="continueAsGuest"
+          >
+            <ion-icon slot="start" :icon="mapOutline"></ion-icon>
+            Continuer sans compte
+          </ion-button>
+
           <!-- Lien vers inscription -->
           <div class="signup-link">
             <p>Pas encore de compte ?</p>
@@ -123,7 +134,8 @@ import {
   locationOutline,
   eyeOutline,
   eyeOffOutline,
-  logInOutline
+  logInOutline,
+  mapOutline
 } from 'ionicons/icons';
 
 // Importez les mêmes fonctions Firebase
@@ -306,6 +318,11 @@ const forgotPassword = async () => {
   await alert.present();
 };
 
+// Continuer sans compte (mode invité)
+const continueAsGuest = () => {
+  router.push('/map');
+};
+
 // Navigation
 const goBack = () => {
   router.back();
@@ -322,49 +339,53 @@ const goToRegister = () => {
 .login-container {
   padding: 20px;
   padding-bottom: 40px;
+  max-width: 440px;
+  margin: 0 auto;
 }
 
-/* Section logo - Même style que profile-section */
+/* Section logo */
 .profile-section {
   text-align: center;
-  margin: 20px 0 30px;
-  animation-delay: 0.1s;
+  margin: 24px 0 32px;
 }
 
 .logo-circle {
-  width: 120px;
-  height: 120px;
+  width: 100px;
+  height: 100px;
   margin: 0 auto;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #FFE4E9, #FFB6C1);
+  border-radius: var(--radius-full);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid #FFB6C1;
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-primary);
+  transition: all var(--transition-base);
 }
 
 .logo-circle:hover {
-  transform: scale(1.05);
-  border-color: #DDA0DD;
+  transform: scale(1.05) rotate(5deg);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
 }
 
 .logo-icon {
-  font-size: 50px;
+  font-size: 44px;
   color: white;
 }
 
 .form-card {
-  animation-delay: 0.2s;
-  max-width: 500px;
-  margin: 0 auto;
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  padding: 32px 28px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(99, 102, 241, 0.08);
 }
 
 .form-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #5a5a5a;
-  margin-bottom: 25px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 28px;
   text-align: center;
 }
 
@@ -374,39 +395,46 @@ const goToRegister = () => {
 
 .input-label {
   display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: #5a5a5a;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
   margin-bottom: 8px;
-  padding-left: 5px;
 }
 
 .cute-input {
-  --background: #ffffff;
-  --border-radius: 15px;
-  --padding-start: 20px;
-  --padding-end: 20px;
-  border: 2px solid #ffe4e9;
-  transition: all 0.3s ease;
+  --background: var(--gray-50);
+  --border-radius: var(--radius-lg);
+  --padding-start: 18px;
+  --padding-end: 18px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  font-size: 0.938rem;
 }
 
 .cute-input:focus-within {
-  border-color: var(--ion-color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 182, 193, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  --background: var(--surface);
 }
 
 .password-icon {
   cursor: pointer;
-  color: #999;
-  font-size: 20px;
-  margin-right: 10px;
+  color: var(--text-muted);
+  font-size: 22px;
+  margin-right: 12px;
+  transition: color var(--transition-fast);
+}
+
+.password-icon:hover {
+  color: var(--primary);
 }
 
 .error-text {
-  color: #FFB3BA;
-  font-size: 12px;
-  margin-top: 5px;
-  padding-left: 5px;
+  color: var(--danger);
+  font-size: 0.813rem;
+  margin-top: 6px;
+  font-weight: 500;
 }
 
 .checkbox-group {
@@ -414,58 +442,71 @@ const goToRegister = () => {
   align-items: center;
   justify-content: space-between;
   margin: 20px 0;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #5a5a5a;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .forgot-link {
-  font-size: 14px;
-  color: var(--ion-color-primary);
+  font-size: 0.875rem;
+  color: var(--primary);
   text-decoration: none;
   cursor: pointer;
+  font-weight: 600;
+  transition: color var(--transition-fast);
 }
 
 .forgot-link:hover {
-  text-decoration: underline;
+  color: var(--primary-dark);
 }
 
-/* Messages d'état - Même style que Register */
+/* Messages d'état */
 ion-text[color="danger"],
 ion-text[color="success"] {
   display: block;
-  margin: 15px 0;
-  padding: 10px;
-  border-radius: 8px;
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
   text-align: center;
-  font-size: 14px;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 ion-text[color="danger"] {
-  background-color: #FFEBEE;
-  border: 1px solid #FFCDD2;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--danger);
 }
 
 ion-text[color="success"] {
-  background-color: #E8F5E9;
-  border: 1px solid #C8E6C9;
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: var(--success);
 }
 
 .login-button {
-  --background: linear-gradient(90deg, #DDA0DD, #B0E0E6);
-  --border-radius: 30px;
-  --box-shadow: 0 4px 15px rgba(221, 160, 221, 0.3);
-  height: 50px;
+  --background: var(--gradient-primary);
+  --border-radius: var(--radius-xl);
+  --box-shadow: var(--shadow-primary);
+  height: 52px;
   font-weight: 600;
-  font-size: 16px;
-  margin-top: 20px;
-  margin-bottom: 20px;
-  transition: all 0.3s ease;
+  font-size: 1rem;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  transition: all var(--transition-base);
+}
+
+.login-button:hover:not(:disabled) {
+  --box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
 }
 
 .login-button:disabled {
@@ -473,88 +514,95 @@ ion-text[color="success"] {
   cursor: not-allowed;
 }
 
+.guest-button {
+  --border-radius: var(--radius-xl);
+  --border-color: var(--border-default);
+  --color: var(--text-secondary);
+  --border-width: 2px;
+  height: 52px;
+  font-weight: 600;
+  font-size: 0.938rem;
+  margin-bottom: 16px;
+  transition: all var(--transition-base);
+}
+
+.guest-button:hover {
+  --border-color: var(--primary);
+  --color: var(--primary);
+  --background: rgba(99, 102, 241, 0.05);
+}
+
 .button-spinner {
   color: white;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .signup-link {
   text-align: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-light);
 }
 
 .signup-link p {
-  color: #999;
-  font-size: 14px;
-  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 8px;
 }
 
 .link-text-bold {
-  color: var(--ion-color-secondary);
-  font-size: 16px;
+  color: var(--primary);
+  font-size: 1rem;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
+  transition: color var(--transition-fast);
 }
 
 .link-text-bold:hover {
-  text-decoration: underline;
+  color: var(--primary-dark);
 }
 
-/* Animation de fond - Même que Register */
+/* Fond gradient */
 .gradient-bg {
-  background: linear-gradient(135deg, #FFF0F5 0%, #F8F0FF 100%);
+  background: var(--gradient-surface);
   min-height: 100vh;
 }
 
-/* Responsive - Même que Register */
+/* Responsive */
 @media (max-width: 480px) {
   .login-container {
     padding: 16px;
-    padding-bottom: 30px;
+    padding-bottom: 32px;
   }
   
   .logo-circle {
-    width: 100px;
-    height: 100px;
+    width: 88px;
+    height: 88px;
   }
   
   .logo-icon {
-    font-size: 40px;
+    font-size: 38px;
   }
   
   .form-card {
-    padding: 20px;
+    padding: 24px 20px;
+    border-radius: var(--radius-xl);
   }
   
   .form-title {
-    font-size: 22px;
+    font-size: 1.375rem;
   }
   
-  .login-button {
-    height: 48px;
-    font-size: 15px;
+  .login-button,
+  .guest-button {
+    height: 50px;
   }
   
   .checkbox-group {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
   }
-}
-
-/* Animation de fond subtile */
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.gradient-bg {
-  animation: gradientShift 15s ease infinite;
-  background-size: 200% 200%;
 }
 </style>
