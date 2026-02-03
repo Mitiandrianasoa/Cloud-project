@@ -146,38 +146,53 @@ const currentUserId = ref(auth.currentUser?.uid || '');
 
 // --- RÉCUPÉRATION DES DONNÉES ---
 const fetchReportsFromFirebase = () => {
-  const q = query(collection(db, "road_issues"), orderBy("created_at", "desc"));
+  console.log('🔄 Démarrage de la récupération Firebase...');
+  
+  try {
+    const q = query(collection(db, "road_issues"), orderBy("created_at", "desc"));
 
-  // Écoute en temps réel
-  onSnapshot(q, (querySnapshot) => {
-    const tempReports: any[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
+    // Écoute en temps réel
+    onSnapshot(q, (querySnapshot) => {
+      console.log(`📦 ${querySnapshot.size} documents reçus de Firebase`);
       
-      // Adaptation du format Firestore -> Interface UI
-      tempReports.push({
-        id: doc.id,
-        // On déduit le type CSS à partir du titre enregistré
-        type: data.title?.toLowerCase().includes('urgent') ? 'urgent' : 
-              data.title?.toLowerCase().includes('info') ? 'info' : 'anomaly',
-        description: data.description,
-        location: {
-          lat: data.latitude,
-          lng: data.longitude,
-          address: `Point GPS: ${data.latitude?.toFixed(4)}, ${data.longitude?.toFixed(4)}`
-        },
-        date: data.created_at ? new Date(data.created_at) : new Date(),
-        urgency: data.niveau_danger === 'ELEVÉ' ? 3 : (data.urgency || 1),
-        // Mapping complet des statuts Firebase -> UI
-        status: mapFirebaseStatus(data.status),
-        photos: data.photos || [],
-        photos_count: data.photos_count || 0,
-        user_id: data.user_id || '',
-        user_email: data.user_email || ''
+      const tempReports: any[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        console.log('📄 Document:', doc.id, data);
+        
+        // Adaptation du format Firestore -> Interface UI
+        tempReports.push({
+          id: doc.id,
+          // On déduit le type CSS à partir du titre enregistré
+          type: data.title?.toLowerCase().includes('urgent') ? 'urgent' : 
+                data.title?.toLowerCase().includes('info') ? 'info' : 'anomaly',
+          description: data.description || 'Aucune description',
+          location: {
+            lat: data.latitude || 0,
+            lng: data.longitude || 0,
+            address: data.latitude && data.longitude 
+              ? `Point GPS: ${data.latitude?.toFixed(4)}, ${data.longitude?.toFixed(4)}`
+              : 'Position inconnue'
+          },
+          date: data.created_at ? new Date(data.created_at) : new Date(),
+          urgency: data.niveau_danger === 'ELEVÉ' ? 3 : (data.urgency || 1),
+          // Mapping complet des statuts Firebase -> UI
+          status: mapFirebaseStatus(data.status),
+          photos: data.photos || [],
+          photos_count: data.photos_count || (data.photos?.length || 0),
+          user_id: data.user_id || '',
+          user_email: data.user_email || ''
+        });
       });
+      
+      reports.value = tempReports;
+      console.log('✅ Reports mis à jour:', reports.value.length, 'signalements');
+    }, (error) => {
+      console.error('❌ Erreur Firebase onSnapshot:', error);
     });
-    reports.value = tempReports;
-  });
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération:', error);
+  }
 };
 
 onMounted(() => {

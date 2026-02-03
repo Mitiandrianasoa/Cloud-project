@@ -406,26 +406,14 @@ const handleReportSubmit = async (reportData: any) => {
     const currentUserEmail = auth.currentUser?.email || 'unknown';
     const reportId = crypto.randomUUID();
     
-    // Upload des photos vers Firebase Storage
-    const photoUrls: string[] = [];
+    // Stocker les photos en base64 directement (évite les problèmes CORS)
+    // Note: Firestore limite à 1MB par document, donc on compresse les images
+    const photosBase64: string[] = [];
     if (reportData.photos && reportData.photos.length > 0) {
-      showToast('Upload des photos en cours... 📤', 'tertiary');
-      
-      for (let i = 0; i < reportData.photos.length; i++) {
-        const photo = reportData.photos[i];
-        try {
-          // Créer une référence unique pour chaque photo
-          const photoRef = storageRef(storage, `reports/${currentUserId}/${reportId}/photo_${i}_${Date.now()}.jpg`);
-          
-          // Upload de la photo (format base64 dataUrl)
-          if (photo.startsWith('data:')) {
-            await uploadString(photoRef, photo, 'data_url');
-            const downloadUrl = await getDownloadURL(photoRef);
-            photoUrls.push(downloadUrl);
-            console.log(`Photo ${i + 1} uploadée:`, downloadUrl);
-          }
-        } catch (uploadError) {
-          console.error(`Erreur upload photo ${i + 1}:`, uploadError);
+      for (const photo of reportData.photos) {
+        if (photo.startsWith('data:')) {
+          // Garder les photos en base64 (déjà compressées par la caméra)
+          photosBase64.push(photo);
         }
       }
     }
@@ -443,21 +431,25 @@ const handleReportSubmit = async (reportData: any) => {
       synced_at: serverTimestamp(),
       user_id: currentUserId,
       user_email: currentUserEmail,
-      photos: photoUrls,
-      photos_count: photoUrls.length,
+      photos: photosBase64,
+      photos_count: photosBase64.length,
       id: reportId
     };
 
     await addDoc(collection(db, "road_issues"), finalData);
     
-    const message = photoUrls.length > 0 
-      ? `Signalement envoyé avec ${photoUrls.length} photo(s) ! 🚀` 
-      : 'Signalement envoyé ! 🚀';
-    showToast(message, 'success');
+    // Fermer le modal d'abord
     closeReportModal();
-  } catch (error) {
+    
+    // Puis afficher le message de succès
+    const message = photosBase64.length > 0 
+      ? `✅ Signalement envoyé avec ${photosBase64.length} photo(s) !` 
+      : '✅ Signalement envoyé !';
+    showToast(message, 'success');
+    
+  } catch (error: any) {
     console.error("Erreur Firebase:", error);
-    showToast('Erreur lors de la sauvegarde ❌', 'danger');
+    showToast(`Erreur: ${error.message || 'Erreur lors de la sauvegarde'} ❌`, 'danger');
   }
 };
 
