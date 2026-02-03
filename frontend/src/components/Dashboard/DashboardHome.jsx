@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import MapView from '../MapView';
 import axios from 'axios';
+import ManagerDashboard from '../ManagerDashboard';
 import Statistiques from '../Statistiques';
 import '../../styles/components.css';
-
+import HasRole from '../HasRole';
 const DashboardHome = ({ refreshKey }) => {
   const [markers, setMarkers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,8 +56,10 @@ const DashboardHome = ({ refreshKey }) => {
           🔄 Recharger la carte
         </button>
       </div>
-      
-      <Statistiques markers={markers} />
+      <HasRole minRoleId={3}> <Statistiques markers={markers} /> 
+      <ManagerDashboard />
+      </HasRole>
+
     </div>
   );
 };

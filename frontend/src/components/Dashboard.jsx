@@ -29,5 +29,14 @@ const Dashboard = ({ user, onLogout }) => {
   );
 };
 
-export default Dashboard;
+const headerStyle = {
+  display: 'flex', 
+  justifyContent: 'space-between', 
+  alignItems: 'center', 
+  padding: '15px 25px',
+  background: '#ffffff',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+  borderBottom: '2px solid #1e3a8a' // Rappel du bleu sécurité
+};
 
+export default Dashboard;

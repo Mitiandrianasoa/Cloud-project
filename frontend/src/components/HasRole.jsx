@@ -14,3 +14,4 @@ const HasRole = ({ minRoleId, children }) => {
 };
 
 // <HasRole minRoleId={3}> <BoutonManager /> </HasRole>
+export default HasRole;

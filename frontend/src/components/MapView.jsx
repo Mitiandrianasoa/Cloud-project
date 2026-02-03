@@ -30,15 +30,14 @@ const MapView = ({ markers = [], onRefresh }) => {
 
   // --- LOGIQUE DE FILTRAGE ---
   // On filtre les marqueurs avant l'affichage
-  const visibleMarkers = markers.filter(m => {
-    // Si VISITEUR (role_id 1) ou non connecté : on cache "EN_ATTENTE"
-    if (!user || user.role_id === 1) {
-      return m.status !== 'EN_ATTENTE';
-    }
-    // USER (2) et MANAGER (3) voient tout
-    return true;
-  });
-
+const visibleMarkers = markers.filter(m => {
+  if (!user || user.role_id === 1) {
+    // On force tout en majuscules pour la comparaison
+    return m.status?.toUpperCase() !== 'EN_ATTENTE';
+  }
+  return true;
+});    // USER (2) et MANAGER (3) voient tout
+   
   const MapEvents = () => {
     useMapEvents({
       click(e) { 
