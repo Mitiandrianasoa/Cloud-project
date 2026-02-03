@@ -1,133 +1,146 @@
 <template>
   <ion-page>
-    <ion-header>
+    <ion-header class="map-header">
       <ion-toolbar>
-        <!-- Menu/Profile à gauche -->
         <ion-buttons slot="start">
-          <ion-button @click="toggleProfileMenu" class="profile-btn">
-            <div class="profile-avatar" v-if="currentUser">
-              <img v-if="currentUser.photoURL" :src="currentUser.photoURL" alt="Profile" />
-              <ion-icon v-else :icon="personCircleOutline"></ion-icon>
-            </div>
-            <ion-icon v-else :icon="personCircleOutline" size="large"></ion-icon>
-          </ion-button>
+          <div class="header-brand">
+            <ion-icon :icon="shieldCheckmarkOutline" class="brand-icon"></ion-icon>
+            <span class="brand-text">Safe Roads</span>
+          </div>
         </ion-buttons>
-
-        <ion-title>Safe Roads</ion-title>
-
         <ion-buttons slot="end">
-          <ion-button @click="goToReports">
+          <ion-button @click="goToReports" class="header-btn">
             <ion-icon :icon="listOutline"></ion-icon>
+          </ion-button>
+          <ion-button @click="toggleProfileMenu" class="profile-btn">
+            <div class="profile-avatar">
+              <ion-icon :icon="personOutline" v-if="!userPhotoURL"></ion-icon>
+              <img :src="userPhotoURL" v-else alt="Profile" />
+            </div>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <!-- Menu Profil Overlay -->
-    <div v-if="showProfileMenu" class="profile-overlay" @click="closeProfileMenu">
-      <div class="profile-menu" @click.stop>
-        <!-- Header du profil -->
-        <div class="profile-header">
-          <div class="profile-avatar-large">
-            <img v-if="currentUser?.photoURL" :src="currentUser.photoURL" alt="Profile" />
-            <ion-icon v-else :icon="personCircleOutline"></ion-icon>
-          </div>
-          <div class="profile-info">
-            <h3 class="profile-name">{{ currentUser?.displayName || 'Utilisateur' }}</h3>
-            <p class="profile-email">{{ currentUser?.email || 'Non connecté' }}</p>
-            <span class="connection-status" :class="{ connected: isConnected, guest: !isConnected }">
-              <span class="status-dot"></span>
-              {{ isConnected ? 'Connecté' : 'Mode invité' }}
-            </span>
-          </div>
+    <!-- Profile Menu Dropdown -->
+    <div class="profile-menu" :class="{ 'show': isProfileMenuOpen }">
+      <div class="profile-menu-header">
+        <div class="profile-avatar-large">
+          <ion-icon :icon="personOutline" v-if="!userPhotoURL"></ion-icon>
+          <img :src="userPhotoURL" v-else alt="Profile" />
         </div>
-
-        <!-- Actions du menu -->
-        <div class="profile-actions">
-          <button v-if="isConnected" class="menu-item" @click="goToProfile">
-            <ion-icon :icon="personOutline"></ion-icon>
-            <span>Mon profil</span>
-            <ion-icon :icon="chevronForwardOutline" class="chevron"></ion-icon>
-          </button>
-
-          <button class="menu-item" @click="goToReports">
-            <ion-icon :icon="documentTextOutline"></ion-icon>
-            <span>Mes signalements</span>
-            <ion-icon :icon="chevronForwardOutline" class="chevron"></ion-icon>
-          </button>
-
-          <button v-if="isConnected" class="menu-item" @click="goToSettings">
-            <ion-icon :icon="settingsOutline"></ion-icon>
-            <span>Paramètres</span>
-            <ion-icon :icon="chevronForwardOutline" class="chevron"></ion-icon>
-          </button>
-
-          <div class="menu-divider"></div>
-
-          <button v-if="isConnected" class="menu-item logout" @click="handleLogout">
-            <ion-icon :icon="logOutOutline"></ion-icon>
-            <span>Se déconnecter</span>
-          </button>
-
-          <button v-else class="menu-item login" @click="goToLogin">
-            <ion-icon :icon="logInOutline"></ion-icon>
-            <span>Se connecter</span>
-          </button>
-        </div>
-
-        <!-- Footer -->
-        <div class="profile-footer">
-          <p>Safe Roads v1.0</p>
+        <div class="profile-details">
+          <h4 class="profile-name">{{ userName || 'Utilisateur' }}</h4>
+          <p class="profile-email">{{ userEmail || 'email@example.com' }}</p>
         </div>
       </div>
+      <div class="profile-menu-divider"></div>
+      <button class="profile-menu-item" @click="goToSettings">
+        <ion-icon :icon="settingsOutline"></ion-icon>
+        <span>Paramètres</span>
+      </button>
+      <button class="profile-menu-item" @click="goToReports">
+        <ion-icon :icon="documentTextOutline"></ion-icon>
+        <span>Mes signalements</span>
+      </button>
+      <div class="profile-menu-divider"></div>
+      <button class="profile-menu-item logout-btn" @click="handleLogout">
+        <ion-icon :icon="logOutOutline"></ion-icon>
+        <span>Déconnexion</span>
+      </button>
     </div>
 
+    <!-- Profile Menu Backdrop -->
+    <div class="profile-backdrop" :class="{ 'show': isProfileMenuOpen }" @click="closeProfileMenu"></div>
+
     <ion-content :fullscreen="true">
-      <!-- Carte Leaflet -->
+      <div v-if="isPickingLocation" class="selection-banner">
+        <div class="banner-content">
+          <ion-icon :icon="locateOutline"></ion-icon>
+          <span>Touchez la carte pour placer le signalement</span>
+        </div>
+      </div>
+
       <div id="map" ref="mapContainer"></div>
 
-      <!-- Boutons flottants -->
+      <!-- Confirmation Popup -->
+      <div class="confirm-popup" :class="{ 'show': showConfirmPopup }">
+        <div class="confirm-popup-content">
+          <div class="confirm-icon">
+            <ion-icon :icon="locationOutline"></ion-icon>
+          </div>
+          <h3>Ajouter un signalement ?</h3>
+          <p>Voulez-vous signaler un problème à cet emplacement ?</p>
+          <div class="confirm-coords">
+            <ion-icon :icon="navigateOutline"></ion-icon>
+            <span>{{ pendingLocation ? `${pendingLocation.lat.toFixed(5)}, ${pendingLocation.lng.toFixed(5)}` : '' }}</span>
+          </div>
+          <div class="confirm-actions">
+            <button class="btn-cancel" @click="cancelConfirmation">Annuler</button>
+            <button class="btn-confirm" @click="confirmLocation">Confirmer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Marker Tooltip -->
+      <div class="marker-tooltip" :class="{ 'show': showMarkerTooltip }" :style="tooltipPosition">
+        <div class="tooltip-header">
+          <span class="tooltip-badge" :class="tooltipData.typeClass">{{ tooltipData.type }}</span>
+          <span class="tooltip-date">{{ tooltipData.date }}</span>
+        </div>
+        <h4 class="tooltip-title">{{ tooltipData.title }}</h4>
+        <p class="tooltip-description">{{ tooltipData.description }}</p>
+        
+        <!-- Aperçu des photos -->
+        <div v-if="tooltipData.photos && tooltipData.photos.length > 0" class="tooltip-photos">
+          <img 
+            v-for="(photo, index) in tooltipData.photos.slice(0, 2)" 
+            :key="index" 
+            :src="photo" 
+            :alt="'Photo ' + (index + 1)"
+            class="tooltip-photo"
+          />
+          <div v-if="tooltipData.photos.length > 2" class="tooltip-more-photos">
+            +{{ tooltipData.photos.length - 2 }}
+          </div>
+        </div>
+        
+        <div class="tooltip-footer">
+          <span class="tooltip-status" :class="tooltipData.statusClass">
+            <ion-icon :icon="ellipseOutline"></ion-icon>
+            {{ tooltipData.status }}
+          </span>
+          <span v-if="tooltipData.photos && tooltipData.photos.length > 0" class="tooltip-photo-count">
+            📷 {{ tooltipData.photos.length }}
+          </span>
+        </div>
+      </div>
+
       <div class="map-controls">
-        <!-- Bouton recentrage -->
-        <ion-button
-          class="control-button recenter-button"
-          @click="recenterMap"
-        >
+        <ion-button class="control-button recenter-button" @click="recenterMap">
           <ion-icon slot="icon-only" :icon="locateOutline"></ion-icon>
         </ion-button>
 
-        <!-- Bouton signaler un problème -->
-        <ion-button
-          class="control-button report-button"
-          @click="openReportModal"
+        <ion-button 
+          class="control-button report-button" 
+          :color="isPickingLocation ? 'danger' : 'primary'"
+          @click="toggleLocationPicking"
         >
-          <ion-icon slot="start" :icon="warningOutline"></ion-icon>
-          Signaler
+          <ion-icon slot="start" :icon="isPickingLocation ? closeOutline : addOutline"></ion-icon>
+          {{ isPickingLocation ? 'Annuler' : 'Signaler' }}
         </ion-button>
       </div>
 
-      <!-- Légende -->
-      <div class="map-legend soft-card">
-        <h4>Légende</h4>
-        <div class="legend-item">
-          <div class="legend-marker urgent"></div>
-          <span>Urgence</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-marker anomaly"></div>
-          <span>Anomalie</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-marker info"></div>
-          <span>Information</span>
-        </div>
+      <div class="map-legend glass-card">
+        <h4><ion-icon :icon="layersOutline"></ion-icon> Légende</h4>
+        <div class="legend-item"><div class="legend-marker urgent"></div><span>Urgence</span></div>
+        <div class="legend-item"><div class="legend-marker anomaly"></div><span>Anomalie</span></div>
+        <div class="legend-item"><div class="legend-marker info"></div><span>Information</span></div>
       </div>
 
-      <!-- Modal de signalement -->
       <ReportModal
         :is-open="isReportModalOpen"
-        :user-location="userLocation"
-        :clicked-location="clickedLocation"
+        :user-location="pickedLocation"
         @close="closeReportModal"
         @submit="handleReportSubmit"
       />
@@ -136,390 +149,105 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonButton,
-  IonContent,
-  IonIcon,
-  toastController,
-  alertController
+  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons,
+  IonButton, IonContent, IonIcon, toastController, alertController
 } from '@ionic/vue';
 import {
-  listOutline,
-  locateOutline,
-  warningOutline,
-  personCircleOutline,
-  personOutline,
-  documentTextOutline,
-  settingsOutline,
-  logOutOutline,
-  logInOutline,
-  chevronForwardOutline
+  listOutline, locateOutline, warningOutline, closeOutline,
+  personOutline, logOutOutline, settingsOutline, documentTextOutline,
+  shieldCheckmarkOutline, addOutline, layersOutline, locationOutline,
+  navigateOutline, ellipseOutline
 } from 'ionicons/icons';
+
+// Leaflet
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Firebase
+import { db, auth, storage } from '@/firebase/config';
+import { 
+  collection, 
+  addDoc, 
+  serverTimestamp, 
+  query, 
+  orderBy, 
+  onSnapshot 
+} from 'firebase/firestore';
+import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
+import { signOut } from 'firebase/auth';
+
+// Composants
 import ReportModal from '../components/ReportModal.vue';
-import { auth } from '../firebase/config';
-import { signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 const router = useRouter();
 
-// État utilisateur
-const currentUser = ref<User | null>(null);
-const isConnected = computed(() => currentUser.value !== null);
-const showProfileMenu = ref(false);
-
-// Écouter l'état d'authentification
-onAuthStateChanged(auth, (user) => {
-  currentUser.value = user;
-});
-
-// État
+// --- ÉTAT ---
 const mapContainer = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
-let userMarker: L.Marker | null = null;
-const userLocation = ref<{ lat: number; lng: number } | null>(null);
-const clickedLocation = ref<{ lat: number; lng: number } | null>(null);
 const isReportModalOpen = ref(false);
-const markers: L.Marker[] = [];
-let clickMarker: L.Marker | null = null;
+const isPickingLocation = ref(false);
+const pickedLocation = ref<{ lat: number; lng: number } | null>(null);
+let tempMarker: L.Marker | null = null;
 
-// Données de test pour les signalements
-const testReports = [
-  { 
-    lat: -18.9150, 
-    lng: 47.5360, 
-    type: 'urgent', 
-    description: 'Fuite d\'eau importante',
-    photo: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=300&h=200&fit=crop',
-    date: '02/02/2026 14:30'
-  },
-  { 
-    lat: -18.9100, 
-    lng: 47.5300, 
-    type: 'anomaly', 
-    description: 'Nid de poule dangereux',
-    photo: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=300&h=200&fit=crop',
-    date: '01/02/2026 10:15'
-  },
-  { 
-    lat: -18.9200, 
-    lng: 47.5400, 
-    type: 'info', 
-    description: 'Travaux en cours',
-    photo: '',
-    date: '31/01/2026 09:00'
-  }
-];
+// Profile menu state
+const isProfileMenuOpen = ref(false);
+const userName = ref(auth.currentUser?.displayName || '');
+const userEmail = ref(auth.currentUser?.email || '');
+const userPhotoURL = ref(auth.currentUser?.photoURL || '');
 
-// Initialiser la carte
-const initMap = () => {
-  if (!mapContainer.value) return;
+// Confirmation popup state
+const showConfirmPopup = ref(false);
+const pendingLocation = ref<{ lat: number; lng: number } | null>(null);
 
-  // Créer la carte
-  map = L.map(mapContainer.value).setView([-18.9150, 47.5360], 13);
+// Marker tooltip state
+const showMarkerTooltip = ref(false);
+const tooltipPosition = ref({ top: '0px', left: '0px' });
+const tooltipData = ref({
+  title: '',
+  description: '',
+  type: '',
+  typeClass: '',
+  status: '',
+  statusClass: '',
+  date: '',
+  photos: [] as string[]
+});
 
-  // Ajouter les tuiles OpenStreetMap
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 19
-  }).addTo(map);
+// On utilise un Map pour suivre les marqueurs Firebase et éviter les doublons
+const firebaseMarkers = new Map<string, L.Marker>();
 
-  // Ajouter le gestionnaire de clic sur la carte
-  map.on('click', handleMapClick);
-
-  // Ajouter les marqueurs de test
-  addTestMarkers();
-
-  // Obtenir la position de l'utilisateur
-  getUserLocation();
-};
-
-// Obtenir la position de l'utilisateur
-const getUserLocation = () => {
-  if ('geolocation' in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        userLocation.value = { lat: latitude, lng: longitude };
-        
-        // Créer un marqueur pour l'utilisateur
-        if (map) {
-          const userIcon = L.divIcon({
-            className: 'user-location-marker',
-            html: '<div class="user-dot"></div>',
-            iconSize: [20, 20]
-          });
-
-          userMarker = L.marker([latitude, longitude], { icon: userIcon }).addTo(map);
-          map.setView([latitude, longitude], 15);
-        }
-      },
-      (error) => {
-        console.error('Erreur de géolocalisation:', error);
-        showToast('Impossible d\'obtenir votre position 📍', 'warning');
-      }
-    );
-  }
-};
-
-// Gérer le clic sur la carte
-const handleMapClick = async (e: L.LeafletMouseEvent) => {
-  const { lat, lng } = e.latlng;
-  
-  // Supprimer l'ancien marqueur temporaire s'il existe
-  if (clickMarker && map) {
-    map.removeLayer(clickMarker);
-  }
-  
-  // Créer un marqueur temporaire à la position cliquée
-  const tempIcon = L.divIcon({
-    className: 'temp-marker',
-    html: '<div class="temp-pin"></div>',
-    iconSize: [30, 42],
-    iconAnchor: [15, 42]
-  });
-  
-  clickMarker = L.marker([lat, lng], { icon: tempIcon }).addTo(map!);
-  
-  // Afficher la confirmation
-  await confirmAddReport(lat, lng);
-};
-
-// Confirmer l'ajout d'un signalement
-const confirmAddReport = async (lat: number, lng: number) => {
-  const alert = await alertController.create({
-    header: 'Nouveau signalement 📍',
-    message: `Voulez-vous ajouter un signalement à cette position ?`,
-    cssClass: 'cute-alert',
-    buttons: [
-      {
-        text: 'Annuler',
-        role: 'cancel',
-        handler: () => {
-          // Supprimer le marqueur temporaire
-          if (clickMarker && map) {
-            map.removeLayer(clickMarker);
-            clickMarker = null;
-          }
-        }
-      },
-      {
-        text: 'Ajouter',
-        handler: () => {
-          // Supprimer le marqueur temporaire
-          if (clickMarker && map) {
-            map.removeLayer(clickMarker);
-            clickMarker = null;
-          }
-          // Stocker la position cliquée et ouvrir le modal
-          clickedLocation.value = { lat, lng };
-          isReportModalOpen.value = true;
-        }
-      }
-    ]
-  });
-  await alert.present();
-};
-
-// Recentrer la carte
-const recenterMap = () => {
-  if (map && userLocation.value) {
-    map.setView([userLocation.value.lat, userLocation.value.lng], 15);
-    showToast('Carte recentrée 🎯', 'tertiary');
-  } else {
-    showToast('Position non disponible 📍', 'warning');
-  }
-};
-
-// Ajouter les marqueurs de test
-const addTestMarkers = () => {
-  if (!map) return;
-
-  testReports.forEach(report => {
-    const markerColor = getMarkerColor(report.type);
-    
-    const customIcon = L.divIcon({
-      className: 'custom-marker',
-      html: `<div class="marker-pin ${report.type}"></div>`,
-      iconSize: [30, 42],
-      iconAnchor: [15, 42],
-      popupAnchor: [0, -42]
-    });
-
-    // Créer le contenu du popup avec photo
-    const popupContent = createPopupContent(report);
-
-    const marker = L.marker([report.lat, report.lng], { icon: customIcon })
-      .addTo(map!)
-      .bindPopup(popupContent, {
-        maxWidth: 280,
-        className: 'custom-popup'
-      });
-
-    // Ouvrir le popup au survol
-    marker.on('mouseover', function() {
-      this.openPopup();
-    });
-
-    markers.push(marker);
-  });
-};
-
-// Créer le contenu du popup
-const createPopupContent = (report: any): string => {
-  const photoHtml = report.photo 
-    ? `<div class="popup-photo"><img src="${report.photo}" alt="Photo du signalement" /></div>`
-    : '';
-  
-  return `
-    <div class="marker-popup">
-      ${photoHtml}
-      <div class="popup-content">
-        <div class="popup-badge ${report.type}">${getTypeLabel(report.type)}</div>
-        <p class="popup-description">${report.description}</p>
-        <div class="popup-date">📅 ${report.date}</div>
-      </div>
-    </div>
-  `;
-};
-
-// Obtenir la couleur du marqueur
-const getMarkerColor = (type: string): string => {
-  switch (type) {
-    case 'urgent': return '#FFB3BA';
-    case 'anomaly': return '#FFD8A8';
-    case 'info': return '#B0E0E6';
-    default: return '#999';
-  }
-};
-
-// Obtenir le label du type
-const getTypeLabel = (type: string): string => {
-  switch (type) {
-    case 'urgent': return '🚨 Urgence';
-    case 'anomaly': return '⚠️ Anomalie';
-    case 'info': return 'ℹ️ Information';
-    default: return 'Signalement';
-  }
-};
-
-// Ouvrir le modal de signalement
-const openReportModal = () => {
-  clickedLocation.value = null; // Réinitialiser la position cliquée
-  isReportModalOpen.value = true;
-};
-
-// Fermer le modal de signalement
-const closeReportModal = () => {
-  isReportModalOpen.value = false;
-  clickedLocation.value = null; // Réinitialiser la position cliquée
-};
-
-// Gérer la soumission d'un signalement
-const handleReportSubmit = async (reportData: any) => {
-  console.log('Nouveau signalement:', reportData);
-  
-  // TODO: Envoyer à Firebase
-  
-  // Ajouter un marqueur temporaire
-  if (map && reportData.location) {
-    const customIcon = L.divIcon({
-      className: 'custom-marker',
-      html: `<div class="marker-pin ${reportData.type}"></div>`,
-      iconSize: [30, 42],
-      iconAnchor: [15, 42],
-      popupAnchor: [0, -42]
-    });
-
-    // Créer le contenu du popup avec photo
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    
-    const popupContent = createPopupContent({
-      ...reportData,
-      date: dateStr
-    });
-
-    const marker = L.marker([reportData.location.lat, reportData.location.lng], { icon: customIcon })
-      .addTo(map)
-      .bindPopup(popupContent, {
-        maxWidth: 280,
-        className: 'custom-popup'
-      });
-
-    // Ouvrir le popup au survol
-    marker.on('mouseover', function() {
-      this.openPopup();
-    });
-
-    markers.push(marker);
-  }
-
-  showToast('Signalement enregistré ! 📝', 'success');
-  closeReportModal();
-};
-
-// Aller vers la liste des signalements
-const goToReports = () => {
-  showProfileMenu.value = false;
-  router.push('/reports');
-};
-
-// Toggle menu profil
+// Profile menu functions
 const toggleProfileMenu = () => {
-  showProfileMenu.value = !showProfileMenu.value;
+  isProfileMenuOpen.value = !isProfileMenuOpen.value;
 };
 
-// Fermer menu profil
 const closeProfileMenu = () => {
-  showProfileMenu.value = false;
+  isProfileMenuOpen.value = false;
 };
 
-// Aller au profil
-const goToProfile = () => {
-  showProfileMenu.value = false;
-  // TODO: Implémenter la page profil
-  showToast('Page profil à venir', 'primary');
-};
-
-// Aller aux paramètres
 const goToSettings = () => {
-  showProfileMenu.value = false;
-  // TODO: Implémenter la page paramètres
-  showToast('Page paramètres à venir', 'primary');
+  closeProfileMenu();
+  // router.push('/settings');
+  showToast('Paramètres - À venir', 'tertiary');
 };
 
-// Aller à la connexion
-const goToLogin = () => {
-  showProfileMenu.value = false;
-  router.push('/login');
-};
-
-// Déconnexion
 const handleLogout = async () => {
+  closeProfileMenu();
   const alert = await alertController.create({
     header: 'Déconnexion',
-    message: 'Voulez-vous vraiment vous déconnecter ?',
+    message: 'Êtes-vous sûr de vouloir vous déconnecter ?',
     buttons: [
+      { text: 'Annuler', role: 'cancel' },
       {
-        text: 'Annuler',
-        role: 'cancel'
-      },
-      {
-        text: 'Déconnecter',
+        text: 'Déconnexion',
         role: 'destructive',
         handler: async () => {
           try {
             await signOut(auth);
-            showProfileMenu.value = false;
-            showToast('Déconnexion réussie', 'success');
+            router.push('/login');
           } catch (error) {
             showToast('Erreur lors de la déconnexion', 'danger');
           }
@@ -530,32 +258,255 @@ const handleLogout = async () => {
   await alert.present();
 };
 
-// Afficher un toast
-const showToast = async (message: string, color: string) => {
-  const toast = await toastController.create({
-    message,
-    duration: 2000,
-    color,
-    position: 'top'
+// --- LOGIQUE CARTE ---
+const initMap = () => {
+  if (!mapContainer.value) return;
+
+  map = L.map(mapContainer.value).setView([-18.9150, 47.5360], 13);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  // CHARGEMENT DES POINTS EXISTANTS
+  loadMarkersFromFirebase();
+
+  map.on('click', (e: L.LeafletMouseEvent) => {
+    // Toujours afficher la popup de confirmation quand on clique sur la carte
+    pendingLocation.value = { lat: e.latlng.lat, lng: e.latlng.lng };
+    showConfirmPopup.value = true;
   });
+};
+
+const cancelConfirmation = () => {
+  showConfirmPopup.value = false;
+  pendingLocation.value = null;
+};
+
+const confirmLocation = () => {
+  if (pendingLocation.value) {
+    handleLocationSelected(pendingLocation.value.lat, pendingLocation.value.lng);
+  }
+  showConfirmPopup.value = false;
+  pendingLocation.value = null;
+};
+
+const loadMarkersFromFirebase = () => {
+  if (!map) return;
+
+  const q = query(collection(db, "road_issues"));
+
+  // Écoute en temps réel des documents dans Firebase
+  onSnapshot(q, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      const data = change.doc.data();
+      const id = change.doc.id;
+
+      if (change.type === "added" || change.type === "modified") {
+        // Supprimer l'ancien marqueur si c'est une modification
+        if (firebaseMarkers.has(id)) {
+          map?.removeLayer(firebaseMarkers.get(id)!);
+        }
+
+        // Déterminer la classe CSS selon le type
+        const typeClass = data.title?.toLowerCase().includes('urgent') ? 'urgent' : 
+                          data.title?.toLowerCase().includes('info') ? 'info' : 'anomaly';
+
+        const customIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div class="marker-pin ${typeClass}"><div class="marker-pulse"></div></div>`,
+          iconSize: [30, 42],
+          iconAnchor: [15, 42]
+        });
+
+        const marker = L.marker([data.latitude, data.longitude], { icon: customIcon })
+          .addTo(map!);
+
+        // Store marker data for tooltip
+        (marker as any).reportData = {
+          title: data.title || 'Signalement',
+          description: data.description || 'Aucune description',
+          type: typeClass === 'urgent' ? 'Urgence' : typeClass === 'info' ? 'Information' : 'Anomalie',
+          typeClass: typeClass,
+          status: data.status || 'NOUVEAU',
+          statusClass: (data.status || 'NOUVEAU').toLowerCase().replace(' ', '-'),
+          date: data.created_at ? new Date(data.created_at).toLocaleDateString('fr-FR') : 'Date inconnue',
+          photos: data.photos || []
+        };
+
+        // Mouse events for tooltip
+        marker.on('mouseover', (e: L.LeafletMouseEvent) => {
+          const reportData = (marker as any).reportData;
+          tooltipData.value = reportData;
+          
+          const containerPoint = map!.latLngToContainerPoint(e.latlng);
+          tooltipPosition.value = {
+            top: `${containerPoint.y - 10}px`,
+            left: `${containerPoint.x + 20}px`
+          };
+          showMarkerTooltip.value = true;
+        });
+
+        marker.on('mouseout', () => {
+          showMarkerTooltip.value = false;
+        });
+
+        marker.on('click', () => {
+          const reportData = (marker as any).reportData;
+          tooltipData.value = reportData;
+          showMarkerTooltip.value = true;
+          setTimeout(() => {
+            showMarkerTooltip.value = false;
+          }, 3000);
+        });
+
+        firebaseMarkers.set(id, marker);
+      }
+
+      if (change.type === "removed") {
+        if (firebaseMarkers.has(id)) {
+          map?.removeLayer(firebaseMarkers.get(id)!);
+          firebaseMarkers.delete(id);
+        }
+      }
+    });
+  });
+};
+
+const toggleLocationPicking = () => {
+  isPickingLocation.value = !isPickingLocation.value;
+  if (isPickingLocation.value) {
+    showToast('Mode sélection activé : Touchez la carte 📍', 'primary');
+  }
+};
+
+const handleLocationSelected = (lat: number, lng: number) => {
+  pickedLocation.value = { lat, lng };
+  if (map) {
+    if (tempMarker) map.removeLayer(tempMarker);
+    tempMarker = L.marker([lat, lng]).addTo(map);
+  }
+  isPickingLocation.value = false;
+  isReportModalOpen.value = true;
+};
+
+const closeReportModal = () => {
+  isReportModalOpen.value = false;
+  if (tempMarker && map) {
+    map.removeLayer(tempMarker);
+    tempMarker = null;
+  }
+};
+
+const handleReportSubmit = async (reportData: any) => {
+  try {
+    // Utiliser l'ID de l'utilisateur connecté
+    const currentUserId = auth.currentUser?.uid || 'anonymous';
+    const currentUserEmail = auth.currentUser?.email || 'unknown';
+    const reportId = crypto.randomUUID();
+    
+    // Upload des photos vers Firebase Storage
+    const photoUrls: string[] = [];
+    if (reportData.photos && reportData.photos.length > 0) {
+      showToast('Upload des photos en cours... 📤', 'tertiary');
+      
+      for (let i = 0; i < reportData.photos.length; i++) {
+        const photo = reportData.photos[i];
+        try {
+          // Créer une référence unique pour chaque photo
+          const photoRef = storageRef(storage, `reports/${currentUserId}/${reportId}/photo_${i}_${Date.now()}.jpg`);
+          
+          // Upload de la photo (format base64 dataUrl)
+          if (photo.startsWith('data:')) {
+            await uploadString(photoRef, photo, 'data_url');
+            const downloadUrl = await getDownloadURL(photoRef);
+            photoUrls.push(downloadUrl);
+            console.log(`Photo ${i + 1} uploadée:`, downloadUrl);
+          }
+        } catch (uploadError) {
+          console.error(`Erreur upload photo ${i + 1}:`, uploadError);
+        }
+      }
+    }
+    
+    const finalData = {
+      title: reportData.type === 'urgent' ? '🚨 Signalement Urgent' : '⚠️ Anomalie Route',
+      description: reportData.description,
+      latitude: pickedLocation.value?.lat || 0,
+      longitude: pickedLocation.value?.lng || 0,
+      niveau_danger: reportData.type === 'urgent' ? 'ELEVÉ' : 'NORMAL',
+      urgency: reportData.urgency || 1,
+      status: "EN_ATTENTE",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      synced_at: serverTimestamp(),
+      user_id: currentUserId,
+      user_email: currentUserEmail,
+      photos: photoUrls,
+      photos_count: photoUrls.length,
+      id: reportId
+    };
+
+    await addDoc(collection(db, "road_issues"), finalData);
+    
+    const message = photoUrls.length > 0 
+      ? `Signalement envoyé avec ${photoUrls.length} photo(s) ! 🚀` 
+      : 'Signalement envoyé ! 🚀';
+    showToast(message, 'success');
+    closeReportModal();
+  } catch (error) {
+    console.error("Erreur Firebase:", error);
+    showToast('Erreur lors de la sauvegarde ❌', 'danger');
+  }
+};
+
+const recenterMap = () => { if (map) map.setView([-18.9150, 47.5360], 15); };
+
+const showToast = async (message: string, color: string) => {
+  const toast = await toastController.create({ message, duration: 2500, color, position: 'top' });
   await toast.present();
 };
 
-// Cycle de vie
-onMounted(() => {
-  setTimeout(() => initMap(), 100);
-});
+const goToReports = () => router.push('/reports');
 
-onUnmounted(() => {
-  if (map) {
-    map.remove();
-    map = null;
-  }
-});
+onMounted(() => setTimeout(() => initMap(), 100));
+onUnmounted(() => { if (map) map.remove(); });
 </script>
-
 <style scoped>
-/* Profile Button dans le header */
+#map { width: 100%; height: 100%; z-index: 0; }
+
+/* Header Styles */
+.map-header ion-toolbar {
+  --padding-start: 8px;
+  --padding-end: 8px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+}
+
+.brand-icon {
+  font-size: 24px;
+  color: white;
+}
+
+.brand-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.02em;
+}
+
+.header-btn {
+  --color: white;
+  --padding-start: 8px;
+  --padding-end: 8px;
+}
+
 .profile-btn {
   --padding-start: 4px;
   --padding-end: 4px;
@@ -565,12 +516,23 @@ onUnmounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  overflow: hidden;
-  border: 2px solid var(--primary);
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gray-100);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.profile-avatar:hover {
+  border-color: white;
+  transform: scale(1.05);
+}
+
+.profile-avatar ion-icon {
+  font-size: 20px;
+  color: white;
 }
 
 .profile-avatar img {
@@ -579,73 +541,70 @@ onUnmounted(() => {
   object-fit: cover;
 }
 
-.profile-avatar ion-icon {
-  font-size: 32px;
-  color: var(--primary);
+/* Profile Menu Dropdown */
+.profile-menu {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  width: 280px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
-/* Overlay du menu profil */
-.profile-overlay {
+.profile-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.profile-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  animation: fadeIn 0.2s ease;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.profile-backdrop.show {
+  opacity: 1;
+  visibility: visible;
 }
 
-/* Menu profil */
-.profile-menu {
-  position: absolute;
-  top: 60px;
-  left: 16px;
-  width: calc(100% - 32px);
-  max-width: 320px;
-  background: var(--surface);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-xl);
-  overflow: hidden;
-  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Header du profil */
-.profile-header {
-  background: var(--gradient-primary);
-  padding: 24px 20px;
+.profile-menu-header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+  padding: 20px;
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
 }
 
 .profile-avatar-large {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+}
+
+.profile-avatar-large ion-icon {
+  font-size: 28px;
+  color: white;
 }
 
 .profile-avatar-large img {
@@ -654,150 +613,421 @@ onUnmounted(() => {
   object-fit: cover;
 }
 
-.profile-avatar-large ion-icon {
-  font-size: 56px;
-  color: white;
-}
-
-.profile-info {
+.profile-details {
   flex: 1;
-  min-width: 0;
 }
 
 .profile-name {
-  color: white;
-  font-size: 1.125rem;
+  font-size: 16px;
   font-weight: 600;
-  margin: 0 0 4px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: white;
+  margin: 0 0 2px 0;
 }
 
 .profile-email {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.813rem;
-  margin: 0 0 8px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
 }
 
-.connection-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+.profile-menu-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 0;
 }
 
-.connection-status .status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #10B981;
-  animation: pulse-dot 2s infinite;
-}
-
-.connection-status.guest .status-dot {
-  background: #F59E0B;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* Actions du menu */
-.profile-actions {
-  padding: 12px 8px;
-}
-
-.menu-item {
-  width: 100%;
+.profile-menu-item {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 16px;
+  width: 100%;
+  padding: 14px 20px;
+  background: none;
   border: none;
-  background: transparent;
-  border-radius: var(--radius-lg);
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  font-size: 0.938rem;
-  color: var(--text-primary);
-  font-family: inherit;
-}
-
-.menu-item:hover {
-  background: var(--gray-100);
-}
-
-.menu-item:active {
-  transform: scale(0.98);
-}
-
-.menu-item ion-icon {
-  font-size: 22px;
-  color: var(--text-secondary);
-}
-
-.menu-item span {
-  flex: 1;
+  transition: all 0.2s ease;
   text-align: left;
+}
+
+.profile-menu-item:hover {
+  background: #f8fafc;
+}
+
+.profile-menu-item ion-icon {
+  font-size: 20px;
+  color: #64748b;
+}
+
+.profile-menu-item.logout-btn {
+  color: #ef4444;
+}
+
+.profile-menu-item.logout-btn ion-icon {
+  color: #ef4444;
+}
+
+/* --- AJOUT POUR LES MARQUEURS --- */
+:deep(.custom-marker) {
+  background: transparent;
+  border: none;
+}
+
+:deep(.marker-pin) {
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  position: absolute;
+  transform: rotate(-45deg);
+  left: 50%;
+  top: 50%;
+  margin: -14px 0 0 -14px;
+  border: 3px solid white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  transition: all 0.3s ease;
+}
+
+:deep(.marker-pin:hover) {
+  transform: rotate(-45deg) scale(1.1);
+}
+
+:deep(.marker-pulse) {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  animation: pulse-marker 2s infinite;
+  background: inherit;
+  opacity: 0.3;
+}
+
+@keyframes pulse-marker {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+:deep(.marker-pin.urgent) { 
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+:deep(.marker-pin.anomaly) { 
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+:deep(.marker-pin.info) { 
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+}
+
+/* --- FIN AJOUT --- */
+
+/* Confirmation Popup */
+.confirm-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  z-index: 2001;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.confirm-popup.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.confirm-popup-content {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  width: 320px;
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+}
+
+.confirm-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.confirm-icon ion-icon {
+  font-size: 36px;
+  color: white;
+}
+
+.confirm-popup-content h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.confirm-popup-content p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 16px 0;
+}
+
+.confirm-coords {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.confirm-coords ion-icon {
+  font-size: 18px;
+  color: var(--ion-color-primary);
+}
+
+.confirm-coords span {
+  font-size: 13px;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-cancel, .btn-confirm {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+.btn-confirm {
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
+  color: white;
+}
+
+.btn-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Marker Tooltip */
+.marker-tooltip {
+  position: absolute;
+  background: white;
+  border-radius: 14px;
+  padding: 16px;
+  min-width: 220px;
+  max-width: 280px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1500;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.marker-tooltip.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.tooltip-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tooltip-badge.urgent {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.tooltip-badge.anomaly {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.tooltip-badge.info {
+  background: rgba(6, 182, 212, 0.1);
+  color: #06b6d4;
+}
+
+.tooltip-date {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.tooltip-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+}
+
+.tooltip-description {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 12px 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Photos dans le tooltip */
+.tooltip-photos {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.tooltip-photo {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
+}
+
+.tooltip-more-photos {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.tooltip-footer {
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tooltip-photo-count {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.tooltip-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 500;
 }
 
-.menu-item .chevron {
-  font-size: 18px;
-  color: var(--text-muted);
+.tooltip-status ion-icon {
+  font-size: 8px;
 }
 
-.menu-item.logout {
-  color: var(--danger);
+.tooltip-status.nouveau {
+  color: #06b6d4;
 }
 
-.menu-item.logout ion-icon {
-  color: var(--danger);
+.tooltip-status.en-cours {
+  color: #f59e0b;
 }
 
-.menu-item.login {
-  color: var(--primary);
+.tooltip-status.resolu {
+  color: #10b981;
 }
 
-.menu-item.login ion-icon {
-  color: var(--primary);
+.selection-banner {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  animation: slideDown 0.4s ease;
 }
 
-.menu-divider {
-  height: 1px;
-  background: var(--border-light);
-  margin: 8px 16px;
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
-/* Footer du menu */
-.profile-footer {
-  padding: 12px 20px;
-  background: var(--gray-50);
-  border-top: 1px solid var(--border-light);
+.banner-content {
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
+  color: white;
+  padding: 14px 24px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.35);
+  font-weight: 500;
+  font-size: 14px;
 }
 
-.profile-footer p {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-/* Carte */
-#map {
-  width: 100%;
-  height: 100%;
-  z-index: 0;
+.banner-content ion-icon {
+  font-size: 20px;
+  animation: pulse 1.5s infinite;
 }
 
 .map-controls {
@@ -811,312 +1041,110 @@ onUnmounted(() => {
 }
 
 .control-button {
-  --border-radius: var(--radius-xl);
-  --box-shadow: var(--shadow-lg);
+  --border-radius: 14px;
+  --box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   height: 52px;
   font-weight: 600;
-  transition: all var(--transition-base);
+  font-size: 14px;
+  transition: all 0.3s ease;
 }
 
 .control-button:hover {
   transform: translateY(-2px);
-  --box-shadow: var(--shadow-xl);
+  --box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
 
 .recenter-button {
-  --background: var(--surface);
-  --color: var(--primary);
+  --background: white;
+  --color: var(--ion-color-primary);
   width: 52px;
-  align-self: flex-end;
-  border: 2px solid var(--border-light);
-}
-
-.recenter-button:hover {
-  --background: var(--gray-50);
-  border-color: var(--primary);
 }
 
 .report-button {
-  --background: var(--gradient-primary);
-  --color: white;
-  padding: 0 24px;
-  --box-shadow: var(--shadow-primary);
-}
-
-.report-button:hover {
-  --box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  --background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
 }
 
 .map-legend {
   position: absolute;
-  top: 80px;
-  left: 20px;
+  top: 100px;
+  left: 16px;
   z-index: 1000;
-  background: var(--surface);
-  padding: 16px 20px;
-  min-width: 160px;
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  animation: fadeInLeft 0.5s ease;
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .map-legend h4 {
-  margin: 0 0 14px 0;
-  font-family: 'Poppins', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.legend-item {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
-  font-size: 0.813rem;
-  color: var(--text-secondary);
-  font-weight: 500;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+}
+
+.map-legend h4 ion-icon {
+  font-size: 16px;
+  color: var(--ion-color-primary);
+}
+
+.legend-item { 
+  display: flex; 
+  align-items: center; 
+  margin-bottom: 8px; 
+  font-size: 12px;
+  color: #64748b;
 }
 
 .legend-item:last-child {
   margin-bottom: 0;
 }
 
-.legend-marker {
-  width: 14px;
-  height: 14px;
-  border-radius: var(--radius-full);
-  margin-right: 12px;
-  box-shadow: var(--shadow-sm);
+.legend-marker { 
+  width: 14px; 
+  height: 14px; 
+  border-radius: 50%; 
+  margin-right: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.legend-marker.urgent {
-  background: var(--danger);
-}
+.legend-marker.urgent { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.legend-marker.anomaly { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.legend-marker.info { background: linear-gradient(135deg, #06b6d4, #0891b2); }
 
-.legend-marker.anomaly {
-  background: var(--warning);
-}
-
-.legend-marker.info {
-  background: var(--info);
-}
-</style>
-
-<style>
-/* Styles globaux pour les marqueurs Leaflet */
-.user-location-marker {
-  background: transparent;
-  border: none;
-}
-
-.user-dot {
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-full);
-  background: var(--primary);
-  border: 3px solid white;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+/* Responsive */
+@media (max-width: 480px) {
+  .profile-menu {
+    right: 8px;
+    width: calc(100% - 16px);
+    max-width: 320px;
   }
-  50% {
-    box-shadow: 0 0 24px rgba(99, 102, 241, 0.8);
+  
+  .map-legend {
+    top: auto;
+    bottom: 100px;
+    left: 16px;
   }
-  100% {
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+  
+  .confirm-popup-content {
+    width: calc(100% - 40px);
+    max-width: 320px;
   }
-}
-
-.custom-marker {
-  background: transparent;
-  border: none;
-}
-
-.marker-pin {
-  width: 32px;
-  height: 44px;
-  border-radius: 50% 50% 50% 0;
-  position: relative;
-  transform: rotate(-45deg);
-  box-shadow: var(--shadow-md);
-}
-
-.marker-pin::after {
-  content: '';
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-full);
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-}
-
-.marker-pin.urgent {
-  background: var(--danger);
-}
-
-.marker-pin.anomaly {
-  background: var(--warning);
-}
-
-.marker-pin.info {
-  background: var(--info);
-}
-
-/* Styles du popup personnalisé */
-.custom-popup .leaflet-popup-content-wrapper {
-  border-radius: var(--radius-xl);
-  padding: 0;
-  overflow: hidden;
-  box-shadow: var(--shadow-xl);
-  border: 1px solid var(--border-light);
-}
-
-.custom-popup .leaflet-popup-content {
-  margin: 0;
-  min-width: 220px;
-}
-
-.custom-popup .leaflet-popup-tip {
-  background: white;
-}
-
-.marker-popup {
-  padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.popup-photo {
-  width: 100%;
-  height: 140px;
-  overflow: hidden;
-  background: var(--gray-100);
-}
-
-.popup-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.popup-content {
-  padding: 14px 16px;
-}
-
-.popup-badge {
-  display: inline-block;
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  font-size: 0.688rem;
-  font-weight: 600;
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.popup-badge.urgent {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger);
-}
-
-.popup-badge.anomaly {
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--warning);
-}
-
-.popup-badge.info {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--info);
-}
-
-.popup-description {
-  margin: 0 0 10px 0;
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  line-height: 1.5;
-  font-weight: 500;
-}
-
-.popup-date {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-/* Marqueur temporaire pour le clic */
-.temp-marker {
-  background: transparent;
-  border: none;
-}
-
-.temp-pin {
-  width: 32px;
-  height: 44px;
-  border-radius: 50% 50% 50% 0;
-  position: relative;
-  transform: rotate(-45deg);
-  background: var(--gradient-primary);
-  box-shadow: var(--shadow-primary);
-  animation: bounce 0.5s ease;
-}
-
-.temp-pin::after {
-  content: '';
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-full);
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: rotate(-45deg) translateY(0);
-  }
-  50% {
-    transform: rotate(-45deg) translateY(-10px);
-  }
-}
-
-/* Style pour l'alerte de confirmation */
-.cute-alert {
-  --background: var(--surface);
-  --border-radius: var(--radius-2xl);
-}
-
-.cute-alert .alert-head {
-  text-align: center;
-}
-
-.cute-alert .alert-title {
-  font-family: 'Poppins', sans-serif;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.cute-alert .alert-message {
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-.cute-alert .alert-button {
-  border-radius: var(--radius-lg) !important;
-  font-weight: 600;
-}
-
-/* Fix pour les icônes Leaflet manquantes */
-.leaflet-default-icon-path {
-  background-image: url('https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png');
 }
 </style>

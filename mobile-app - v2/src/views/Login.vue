@@ -1,109 +1,119 @@
 <template>
   <ion-page>
-    <ion-header>
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-button @click="goBack">
-            <ion-icon :icon="arrowBackOutline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-        <ion-title>Connexion</ion-title>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content :fullscreen="true" class="gradient-bg">
+    <ion-content :fullscreen="true" class="login-gradient-bg">
       <div class="login-container">
-        <!-- Photo de profil (optionnel) -->
-        <div class="profile-section fade-in">
-          <div class="logo-circle">
-            <ion-icon :icon="locationOutline" class="logo-icon"></ion-icon>
+        <!-- Logo / Branding -->
+        <div class="branding-section fade-in">
+          <div class="logo-container">
+            <div class="logo-circle">
+              <ion-icon :icon="shieldCheckmarkOutline" class="logo-icon"></ion-icon>
+            </div>
+            <div class="logo-glow"></div>
           </div>
+          <h1 class="app-name">Safe Roads</h1>
+          <p class="app-tagline">Signaler. Protéger. Améliorer.</p>
         </div>
 
         <!-- Formulaire de connexion -->
-        <div class="form-card soft-card fade-in">
-          <h2 class="form-title">Connexion 🌸</h2>
+        <div class="form-card fade-in-up">
+          <h2 class="form-title">Bienvenue</h2>
+          <p class="form-subtitle">Connectez-vous pour continuer</p>
 
           <!-- Email -->
-          <div class="input-group">
-            <label class="input-label">Email</label>
-            <ion-input
-              v-model="email"
-              type="email"
-              placeholder="ton-email@exemple.com"
-              class="cute-input"
-              :clear-input="true"
-            ></ion-input>
-            <p v-if="errors.email" class="error-text">{{ errors.email }}</p>
+          <div class="input-group-modern">
+            <label class="input-label-modern">Email</label>
+            <div class="input-wrapper">
+              <ion-icon :icon="mailOutline" class="input-icon"></ion-icon>
+              <ion-input
+                v-model="email"
+                type="email"
+                placeholder="votre@email.com"
+                class="modern-input input-with-icon"
+                :clear-input="true"
+                @ionBlur="validateEmail"
+              ></ion-input>
+            </div>
+            <p v-if="errors.email" class="error-text">
+              <ion-icon :icon="alertCircleOutline"></ion-icon>
+              {{ errors.email }}
+            </p>
           </div>
 
           <!-- Mot de passe -->
-          <div class="input-group">
-            <label class="input-label">Mot de passe</label>
-            <ion-input
-              v-model="password"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
-              class="cute-input"
-            >
+          <div class="input-group-modern">
+            <label class="input-label-modern">Mot de passe</label>
+            <div class="input-wrapper">
+              <ion-icon :icon="lockClosedOutline" class="input-icon"></ion-icon>
+              <ion-input
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="••••••••"
+                class="modern-input input-with-icon"
+                @ionBlur="validatePassword"
+              ></ion-input>
               <ion-icon
-                slot="end"
                 :icon="showPassword ? eyeOffOutline : eyeOutline"
                 @click="togglePassword"
-                class="password-icon"
+                class="password-toggle-icon"
               ></ion-icon>
-            </ion-input>
-            <p v-if="errors.password" class="error-text">{{ errors.password }}</p>
+            </div>
+            <p v-if="errors.password" class="error-text">
+              <ion-icon :icon="alertCircleOutline"></ion-icon>
+              {{ errors.password }}
+            </p>
           </div>
 
           <!-- Options -->
-          <div class="checkbox-group">
-            <ion-checkbox v-model="rememberMe"></ion-checkbox>
-            <label class="checkbox-label">
-              Se souvenir de moi
-            </label>
-            <a @click="forgotPassword" class="forgot-link">
-              Mot de passe oublié ?
-            </a>
+          <div class="options-group">
+            <div class="checkbox-wrapper">
+              <ion-checkbox v-model="rememberMe" class="modern-checkbox"></ion-checkbox>
+              <label class="checkbox-label">Se souvenir de moi</label>
+            </div>
+            <a @click="forgotPassword" class="forgot-link">Mot de passe oublié ?</a>
+          </div>
+
+          <!-- Option rester déconnecté -->
+          <div class="stay-logged-out-wrapper">
+            <ion-checkbox v-model="stayLoggedOut" class="modern-checkbox"></ion-checkbox>
+            <div class="stay-logged-out-info">
+              <label class="checkbox-label">Rester déconnecté</label>
+              <span class="checkbox-hint">Ne pas enregistrer la session sur cet appareil</span>
+            </div>
           </div>
 
           <!-- Messages d'état -->
-          <ion-text color="danger" v-if="error">
-            {{ error }}
-          </ion-text>
+          <div v-if="error" class="message-box error-box fade-in">
+            <ion-icon :icon="closeCircleOutline"></ion-icon>
+            <span>{{ error }}</span>
+          </div>
 
-          <ion-text color="success" v-if="success">
-            {{ success }}
-          </ion-text>
+          <div v-if="success" class="message-box success-box fade-in">
+            <ion-icon :icon="checkmarkCircleOutline"></ion-icon>
+            <span>{{ success }}</span>
+          </div>
 
           <!-- Bouton Connexion -->
           <ion-button
             expand="block"
-            class="cute-button login-button"
+            class="login-btn"
             @click="login"
             :disabled="isLoading"
           >
-            <ion-spinner v-if="isLoading" name="crescent" class="button-spinner"></ion-spinner>
+            <ion-spinner v-if="isLoading" name="crescent" class="btn-spinner"></ion-spinner>
             <ion-icon v-else slot="start" :icon="logInOutline"></ion-icon>
             {{ isLoading ? 'Connexion en cours...' : 'Se connecter' }}
           </ion-button>
 
-          <!-- Bouton Rester déconnecté -->
-          <ion-button
-            expand="block"
-            fill="outline"
-            class="guest-button"
-            @click="continueAsGuest"
-          >
-            <ion-icon slot="start" :icon="mapOutline"></ion-icon>
-            Continuer sans compte
-          </ion-button>
-
           <!-- Lien vers inscription -->
-          <div class="signup-link">
+          <div class="signup-section">
             <p>Pas encore de compte ?</p>
-            <a @click="goToRegister" class="link-text-bold">Créer un compte</a>
+            <a @click="goToRegister" class="signup-link">Créer un compte</a>
           </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="login-footer fade-in">
+          <p>© 2026 Safe Roads - Tous droits réservés</p>
         </div>
       </div>
     </ion-content>
@@ -135,12 +145,18 @@ import {
   eyeOutline,
   eyeOffOutline,
   logInOutline,
-  mapOutline
+  mailOutline,
+  lockClosedOutline,
+  alertCircleOutline,
+  closeCircleOutline,
+  checkmarkCircleOutline,
+  shieldCheckmarkOutline,
+  personOutline
 } from 'ionicons/icons';
 
 // Importez les mêmes fonctions Firebase
 import { auth } from '../firebase/config';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, setPersistence, browserSessionPersistence, browserLocalPersistence } from 'firebase/auth';
 
 const router = useRouter();
 
@@ -148,6 +164,7 @@ const router = useRouter();
 const email = ref('');
 const password = ref('');
 const rememberMe = ref(false);
+const stayLoggedOut = ref(false);
 const showPassword = ref(false);
 const isLoading = ref(false);
 const error = ref('');
@@ -220,6 +237,15 @@ const login = async () => {
     });
     await loading.present();
 
+    // Set persistence based on user choice
+    if (stayLoggedOut.value) {
+      await setPersistence(auth, browserSessionPersistence);
+    } else if (rememberMe.value) {
+      await setPersistence(auth, browserLocalPersistence);
+    } else {
+      await setPersistence(auth, browserSessionPersistence);
+    }
+
     // Connexion avec Firebase
     const userCredential = await signInWithEmailAndPassword(
       auth,
@@ -229,14 +255,6 @@ const login = async () => {
 
     const user = userCredential.user;
 
-    // Optionnel: Vérifier si l'email est vérifié
-    // if (!user.emailVerified) {
-    //   await loading.dismiss();
-    //   error.value = 'Veuillez vérifier votre email avant de vous connecter.';
-    //   // Option: Déconnexion de l'utilisateur
-    //   // await auth.signOut();
-    //   return;
-    // }
     await loading.dismiss();
 
     // Redirection après connexion réussie
@@ -244,13 +262,13 @@ const login = async () => {
     
     // Redirection vers la page d'accueil ou dashboard
     setTimeout(() => {
-      router.push('/map'); // ou '/home' selon votre configuration
+      router.push('/map');
     }, 1500);
 
   } catch (err: any) {
     isLoading.value = false;
     
-    // Gestion des erreurs Firebase - Même pattern que Register
+    // Gestion des erreurs Firebase
     let errorMessage = 'Erreur lors de la connexion';
     
     switch (err.code) {
@@ -278,7 +296,6 @@ const login = async () => {
     
     error.value = errorMessage;
     
-    // Dismiss le loading s'il existe encore
     try {
       await loadingController.dismiss();
     } catch (e) {
@@ -318,11 +335,6 @@ const forgotPassword = async () => {
   await alert.present();
 };
 
-// Continuer sans compte (mode invité)
-const continueAsGuest = () => {
-  router.push('/map');
-};
-
 // Navigation
 const goBack = () => {
   router.back();
@@ -331,278 +343,543 @@ const goBack = () => {
 const goToRegister = () => {
   router.push('/register');
 };
+
+// Continuer sans compte - redirige directement vers la carte
+const continueAsGuest = () => {
+  router.push('/map');
+};
 </script>
 
 <style scoped>
-/* EXACTEMENT LES MÊMES STYLES QUE LA PAGE REGISTER */
+/* Modern Professional Login Styles */
 
-.login-container {
-  padding: 20px;
-  padding-bottom: 40px;
-  max-width: 440px;
-  margin: 0 auto;
+.login-gradient-bg {
+  --background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f0fdfa 100%);
+  min-height: 100vh;
 }
 
-/* Section logo */
-.profile-section {
+.login-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 24px;
+  padding-bottom: 40px;
+}
+
+/* Branding Section */
+.branding-section {
   text-align: center;
-  margin: 24px 0 32px;
+  padding: 40px 0 32px;
+}
+
+.logo-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 20px;
 }
 
 .logo-circle {
   width: 100px;
   height: 100px;
-  margin: 0 auto;
-  border-radius: var(--radius-full);
-  background: var(--gradient-primary);
+  border-radius: 28px;
+  background: linear-gradient(135deg, var(--ion-color-primary, #6366f1), var(--ion-color-secondary, #8b5cf6));
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-primary);
-  transition: all var(--transition-base);
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+  position: relative;
+  z-index: 2;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logo-circle:hover {
-  transform: scale(1.05) rotate(5deg);
-  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 25px 50px rgba(99, 102, 241, 0.4);
 }
 
 .logo-icon {
-  font-size: 44px;
+  font-size: 48px;
   color: white;
 }
 
-.form-card {
-  background: var(--surface);
-  border-radius: var(--radius-2xl);
-  padding: 32px 28px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(99, 102, 241, 0.08);
+.logo-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, var(--ion-color-primary, #6366f1), var(--ion-color-secondary, #8b5cf6));
+  opacity: 0.2;
+  filter: blur(20px);
+  z-index: 1;
+  animation: pulse-glow 3s ease-in-out infinite;
 }
 
-.form-title {
-  font-family: 'Poppins', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 28px;
-  text-align: center;
+@keyframes pulse-glow {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.2; }
+  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.3; }
 }
 
-.input-group {
-  margin-bottom: 20px;
+.app-name {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--ion-color-primary, #6366f1), var(--ion-color-secondary, #8b5cf6));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
 }
 
-.input-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
-.cute-input {
-  --background: var(--gray-50);
-  --border-radius: var(--radius-lg);
-  --padding-start: 18px;
-  --padding-end: 18px;
-  border: 2px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  transition: all var(--transition-base);
-  font-size: 0.938rem;
-}
-
-.cute-input:focus-within {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-  --background: var(--surface);
-}
-
-.password-icon {
-  cursor: pointer;
-  color: var(--text-muted);
-  font-size: 22px;
-  margin-right: 12px;
-  transition: color var(--transition-fast);
-}
-
-.password-icon:hover {
-  color: var(--primary);
-}
-
-.error-text {
-  color: var(--danger);
-  font-size: 0.813rem;
-  margin-top: 6px;
+.app-tagline {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
   font-weight: 500;
 }
 
-.checkbox-group {
+/* Form Card */
+.form-card {
+  background: white;
+  border-radius: 24px;
+  padding: 32px 28px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  max-width: 420px;
+  margin: 0 auto;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.form-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+  text-align: center;
+}
+
+.form-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 28px 0;
+  text-align: center;
+}
+
+/* Input Group Modern */
+.input-group-modern {
+  margin-bottom: 22px;
+}
+
+.input-label-modern {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 20px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.modern-input {
+  --background: #f8fafc;
+  --border-radius: 14px;
+  --padding-start: 48px;
+  --padding-end: 48px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+.modern-input:focus-within {
+  border-color: var(--ion-color-primary, #6366f1);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  --background: white;
+}
+
+.input-with-icon {
+  --padding-start: 48px;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 22px;
+  z-index: 10;
+  transition: color 0.2s ease;
+}
+
+.password-toggle-icon:hover {
+  color: #64748b;
+}
+
+.error-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 8px;
+  padding-left: 4px;
+}
+
+.error-text ion-icon {
+  font-size: 14px;
+}
+
+/* Options Group */
+.options-group {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin: 20px 0;
-  flex-wrap: wrap;
-  gap: 12px;
 }
 
-.checkbox-label {
+.checkbox-wrapper {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+}
+
+.modern-checkbox {
+  --size: 20px;
+  --border-radius: 6px;
+  --border-color: #e2e8f0;
+  --border-color-checked: var(--ion-color-primary, #6366f1);
+  --checkbox-background-checked: var(--ion-color-primary, #6366f1);
+}
+
+.checkbox-label {
+  font-size: 14px;
+  color: #475569;
   font-weight: 500;
+  cursor: pointer;
 }
 
 .forgot-link {
-  font-size: 0.875rem;
-  color: var(--primary);
+  font-size: 14px;
+  color: var(--ion-color-primary, #6366f1);
   text-decoration: none;
   cursor: pointer;
   font-weight: 600;
-  transition: color var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 .forgot-link:hover {
-  color: var(--primary-dark);
+  color: var(--ion-color-secondary, #8b5cf6);
 }
 
-/* Messages d'état */
-ion-text[color="danger"],
-ion-text[color="success"] {
+/* Stay Logged Out */
+.stay-logged-out-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.stay-logged-out-info {
+  flex: 1;
+}
+
+.stay-logged-out-info .checkbox-label {
   display: block;
-  margin: 16px 0;
+  color: #991b1b;
+  margin-bottom: 2px;
+}
+
+.checkbox-hint {
+  font-size: 12px;
+  color: #dc2626;
+  line-height: 1.4;
+}
+
+/* Message Boxes */
+.message-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 14px 16px;
-  border-radius: var(--radius-lg);
-  text-align: center;
-  font-size: 0.875rem;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 14px;
   font-weight: 500;
 }
 
-ion-text[color="danger"] {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  color: var(--danger);
+.message-box ion-icon {
+  font-size: 20px;
+  flex-shrink: 0;
 }
 
-ion-text[color="success"] {
-  background-color: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  color: var(--success);
+.error-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
 }
 
-.login-button {
-  --background: var(--gradient-primary);
-  --border-radius: var(--radius-xl);
-  --box-shadow: var(--shadow-primary);
-  height: 52px;
-  font-weight: 600;
-  font-size: 1rem;
-  margin-top: 24px;
-  margin-bottom: 12px;
-  transition: all var(--transition-base);
+.success-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
 }
 
-.login-button:hover:not(:disabled) {
-  --box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+/* Login Button */
+.login-btn {
+  --background: linear-gradient(135deg, var(--ion-color-primary, #6366f1), var(--ion-color-secondary, #8b5cf6));
+  --border-radius: 14px;
+  --box-shadow: 0 8px 25px rgba(99, 102, 241, 0.35);
+  height: 54px;
+  font-weight: 700;
+  font-size: 16px;
+  margin-top: 8px;
+  transition: all 0.3s ease;
+  letter-spacing: 0.02em;
+}
+
+.login-btn:hover:not(:disabled) {
   transform: translateY(-2px);
+  --box-shadow: 0 12px 30px rgba(99, 102, 241, 0.4);
 }
 
-.login-button:disabled {
-  opacity: 0.6;
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
-.guest-button {
-  --border-radius: var(--radius-xl);
-  --border-color: var(--border-default);
-  --color: var(--text-secondary);
+.btn-spinner {
+  color: white;
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 28px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.divider span {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Guest Button */
+.guest-btn {
+  --background: transparent;
+  --background-hover: rgba(99, 102, 241, 0.05);
+  --border-color: #e2e8f0;
   --border-width: 2px;
+  --border-radius: 14px;
+  --color: #64748b;
+  --box-shadow: none;
   height: 52px;
   font-weight: 600;
-  font-size: 0.938rem;
-  margin-bottom: 16px;
-  transition: all var(--transition-base);
+  font-size: 15px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
 }
 
-.guest-button:hover {
-  --border-color: var(--primary);
-  --color: var(--primary);
-  --background: rgba(99, 102, 241, 0.05);
+.guest-btn:hover {
+  --border-color: var(--ion-color-primary, #6366f1);
+  --color: var(--ion-color-primary, #6366f1);
 }
 
-.button-spinner {
-  color: white;
+.guest-btn ion-icon {
+  font-size: 20px;
+}
+
+/* Social Buttons */
+.social-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #1e293b;
+}
+
+.social-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.social-icon {
   width: 22px;
   height: 22px;
 }
 
-.signup-link {
+/* Signup Section */
+.signup-section {
   text-align: center;
-  margin-top: 24px;
+  margin-top: 28px;
   padding-top: 24px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid #f1f5f9;
 }
 
-.signup-link p {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  margin-bottom: 8px;
+.signup-section p {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0 0 8px 0;
 }
 
-.link-text-bold {
-  color: var(--primary);
-  font-size: 1rem;
-  font-weight: 600;
+.signup-link {
+  color: var(--ion-color-primary, #6366f1);
+  font-size: 16px;
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
-  transition: color var(--transition-fast);
+  transition: color 0.2s ease;
 }
 
-.link-text-bold:hover {
-  color: var(--primary-dark);
+.signup-link:hover {
+  color: var(--ion-color-secondary, #8b5cf6);
 }
 
-/* Fond gradient */
-.gradient-bg {
-  background: var(--gradient-surface);
-  min-height: 100vh;
+/* Footer */
+.login-footer {
+  text-align: center;
+  margin-top: auto;
+  padding-top: 32px;
+}
+
+.login-footer p {
+  color: #94a3b8;
+  font-size: 12px;
+  margin: 0;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Responsive */
 @media (max-width: 480px) {
   .login-container {
-    padding: 16px;
-    padding-bottom: 32px;
+    padding: 20px 16px;
+  }
+  
+  .branding-section {
+    padding: 32px 0 24px;
   }
   
   .logo-circle {
-    width: 88px;
-    height: 88px;
+    width: 80px;
+    height: 80px;
+    border-radius: 22px;
   }
   
   .logo-icon {
     font-size: 38px;
   }
   
+  .app-name {
+    font-size: 26px;
+  }
+  
   .form-card {
     padding: 24px 20px;
-    border-radius: var(--radius-xl);
+    border-radius: 20px;
   }
   
   .form-title {
-    font-size: 1.375rem;
+    font-size: 22px;
   }
   
-  .login-button,
-  .guest-button {
-    height: 50px;
-  }
-  
-  .checkbox-group {
+  .options-group {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .login-btn {
+    height: 50px;
+    font-size: 15px;
   }
 }
 </style>

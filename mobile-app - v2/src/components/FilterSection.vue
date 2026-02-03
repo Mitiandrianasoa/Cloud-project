@@ -60,6 +60,29 @@
           </button>
         </div>
       </div>
+
+      <!-- Filtre Mes signalements -->
+      <div class="filter-group">
+        <label class="filter-label">Propriétaire</label>
+        <div class="filter-chips">
+          <button
+            class="filter-chip"
+            :class="{ active: !localFilters.myReportsOnly }"
+            @click="updateFilter('myReportsOnly', false)"
+          >
+            <span class="chip-icon">🌍</span>
+            <span class="chip-label">Tous</span>
+          </button>
+          <button
+            class="filter-chip my-reports"
+            :class="{ active: localFilters.myReportsOnly }"
+            @click="updateFilter('myReportsOnly', true)"
+          >
+            <span class="chip-icon">👤</span>
+            <span class="chip-label">Mes signalements</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -71,6 +94,7 @@ interface Filters {
   type: string;
   status: string;
   dateRange: string;
+  myReportsOnly: boolean;
 }
 
 interface Props {
@@ -110,7 +134,8 @@ const hasActiveFilters = computed(() => {
   return (
     localFilters.value.type !== 'all' ||
     localFilters.value.status !== 'all' ||
-    localFilters.value.dateRange !== 'all'
+    localFilters.value.dateRange !== 'all' ||
+    localFilters.value.myReportsOnly === true
   );
 });
 
@@ -125,7 +150,8 @@ const resetFilters = () => {
   localFilters.value = {
     type: 'all',
     status: 'all',
-    dateRange: 'all'
+    dateRange: 'all',
+    myReportsOnly: false
   };
   emitFilters();
 };
@@ -147,92 +173,77 @@ watch(
 
 <style scoped>
 .filter-section {
-  margin: 16px;
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-light);
+  margin: 15px;
 }
 
 .filter-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 15px;
 }
 
 .filter-title {
-  font-family: 'Poppins', sans-serif;
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #5a5a5a;
   margin: 0;
 }
 
 .reset-button {
   background: none;
   border: none;
-  color: var(--primary);
-  font-size: 0.813rem;
+  color: var(--ion-color-primary);
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-}
-
-.reset-button:hover {
-  background: rgba(99, 102, 241, 0.1);
+  padding: 5px 10px;
+  border-radius: 8px;
+  transition: background 0.3s ease;
 }
 
 .reset-button:active {
-  background: rgba(99, 102, 241, 0.15);
+  background: #ffe4e9;
 }
 
 .filters-container {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 15px;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .filter-label {
-  font-size: 0.813rem;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary);
-  padding-left: 4px;
+  color: #5a5a5a;
+  padding-left: 5px;
 }
 
 .filter-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .filter-chip {
-  background: var(--gray-50);
-  border: 2px solid var(--border-light);
-  border-radius: var(--radius-full);
-  padding: 8px 18px;
+  background: white;
+  border: 2px solid #ffe4e9;
+  border-radius: 20px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
-  transition: all var(--transition-base);
-  font-size: 0.813rem;
+  transition: all 0.3s ease;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.filter-chip:hover {
-  border-color: var(--border-default);
-  background: var(--surface);
+  color: #5a5a5a;
 }
 
 .filter-chip:active {
@@ -240,17 +251,25 @@ watch(
 }
 
 .filter-chip.active {
-  background: var(--gradient-primary);
+  background: linear-gradient(90deg, #FFB6C1, #DDA0DD);
   border-color: transparent;
   color: white;
-  box-shadow: var(--shadow-primary);
+  box-shadow: 0 2px 8px rgba(255, 182, 193, 0.3);
 }
 
 .chip-icon {
-  font-size: 1rem;
+  font-size: 16px;
 }
 
 .chip-label {
   white-space: nowrap;
+}
+
+/* Style spécial pour "Mes signalements" */
+.filter-chip.my-reports.active {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
 }
 </style>

@@ -1,35 +1,32 @@
 <template>
-  <ion-modal :is-open="isOpen" @didDismiss="closeModal">
+  <ion-modal :is-open="isOpen" @didDismiss="closeModal" class="report-modal">
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button @click="closeModal">Annuler</ion-button>
+          <ion-button @click="closeModal" class="close-btn">
+            <ion-icon :icon="closeOutline"></ion-icon>
+          </ion-button>
         </ion-buttons>
-        <ion-title>Signaler un problème</ion-title>
+        <ion-title>Nouveau signalement</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="submitReport" :strong="true">
+          <ion-button @click="submitReport" :strong="true" class="submit-btn">
+            <ion-icon :icon="checkmarkOutline" slot="start"></ion-icon>
             Envoyer
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="gradient-bg">
+    <ion-content class="modal-gradient-bg">
       <div class="modal-content">
-        <!-- Position sélectionnée (si cliquée sur la carte) -->
-        <div v-if="clickedLocation" class="location-card">
-          <div class="location-header">
-            <ion-icon :icon="locationOutline" class="location-card-icon"></ion-icon>
-            <div class="location-info">
-              <span class="location-label">Position sélectionnée</span>
-              <span class="location-coords">{{ formatLocation(clickedLocation) }}</span>
-            </div>
-          </div>
-        </div>
-
         <!-- Type de problème -->
-        <div class="form-section">
-          <h3 class="section-title">Type de problème *</h3>
+        <div class="form-section fade-in-section">
+          <div class="section-header">
+            <div class="section-icon type-icon">
+              <ion-icon :icon="alertCircleOutline"></ion-icon>
+            </div>
+            <h3 class="section-title">Type de problème</h3>
+          </div>
           <div class="type-buttons">
             <button
               v-for="type in problemTypes"
@@ -38,15 +35,23 @@
               :class="{ active: formData.type === type.value, [type.value]: true }"
               @click="selectType(type.value)"
             >
-              <span class="type-icon">{{ type.icon }}</span>
+              <span class="type-icon-emoji">{{ type.icon }}</span>
               <span class="type-label">{{ type.label }}</span>
+              <div class="type-check" v-if="formData.type === type.value">
+                <ion-icon :icon="checkmarkOutline"></ion-icon>
+              </div>
             </button>
           </div>
         </div>
 
         <!-- Niveau d'urgence -->
-        <div class="form-section">
-          <h3 class="section-title">Niveau d'urgence *</h3>
+        <div class="form-section fade-in-section">
+          <div class="section-header">
+            <div class="section-icon urgency-icon">
+              <ion-icon :icon="flashOutline"></ion-icon>
+            </div>
+            <h3 class="section-title">Niveau d'urgence</h3>
+          </div>
           <div class="urgency-levels">
             <button
               v-for="level in urgencyLevels"
@@ -55,7 +60,7 @@
               :class="{ active: formData.urgency === level.value }"
               @click="selectUrgency(level.value)"
             >
-              <div class="urgency-number" :style="{ background: level.color }">
+              <div class="urgency-number" :style="{ background: level.gradient }">
                 {{ level.value }}
               </div>
               <span class="urgency-label">{{ level.label }}</span>
@@ -64,64 +69,66 @@
         </div>
 
         <!-- Description -->
-        <div class="form-section">
-          <h3 class="section-title">Description *</h3>
-          <ion-textarea
-            v-model="formData.description"
-            placeholder="Décrivez le problème en détail... (ex: Fuite d'eau sur le trottoir)"
-            :rows="4"
-            class="cute-textarea"
-            :counter="true"
-            :maxlength="500"
-          ></ion-textarea>
+        <div class="form-section fade-in-section">
+          <div class="section-header">
+            <div class="section-icon desc-icon">
+              <ion-icon :icon="createOutline"></ion-icon>
+            </div>
+            <h3 class="section-title">Description</h3>
+          </div>
+          <div class="textarea-wrapper">
+            <ion-textarea
+              v-model="formData.description"
+              placeholder="Décrivez le problème en détail... (ex: Nid de poule profond, virage dangereux, signalisation manquante...)"
+              :rows="4"
+              class="modern-textarea"
+              :counter="true"
+              :maxlength="500"
+            ></ion-textarea>
+          </div>
         </div>
 
-        <!-- Photo -->
-        <div class="form-section">
-          <h3 class="section-title">Photo (optionnel)</h3>
+        <!-- Photos -->
+        <div class="form-section fade-in-section">
+          <div class="section-header">
+            <div class="section-icon photo-icon">
+              <ion-icon :icon="cameraOutline"></ion-icon>
+            </div>
+            <h3 class="section-title">Photos <span class="optional-tag">(optionnel)</span></h3>
+          </div>
           <div class="photos-container">
             <div
-              v-if="formData.photo"
+              v-for="(photo, index) in formData.photos"
+              :key="index"
               class="photo-preview"
             >
-              <img :src="formData.photo" alt="Photo" />
-              <button class="remove-photo" @click="removePhoto">
+              <img :src="photo" alt="Photo" />
+              <button class="remove-photo" @click="removePhoto(index)">
                 <ion-icon :icon="closeCircleOutline"></ion-icon>
               </button>
             </div>
             <button
-              v-else
+              v-if="formData.photos.length < 3"
               class="add-photo-button"
-              @click="takePhoto"
+              @click="showPhotoOptions"
             >
-              <ion-icon :icon="cameraOutline"></ion-icon>
-              <span>Prendre une photo</span>
+              <div class="add-photo-icon">
+                <ion-icon :icon="cameraOutline"></ion-icon>
+              </div>
+              <span>Ajouter une photo</span>
+              <span class="photo-count">{{ formData.photos.length }}/3</span>
             </button>
           </div>
         </div>
 
-        <!-- Interface Webcam (pour navigateur) -->
-        <div v-if="showWebcam" class="webcam-overlay">
-          <div class="webcam-container">
-            <div class="webcam-header">
-              <h3>Prendre une photo</h3>
-              <button class="webcam-close" @click="closeWebcam">
-                <ion-icon :icon="closeCircleOutline"></ion-icon>
-              </button>
+        <!-- Position -->
+        <div class="form-section fade-in-section">
+          <div class="section-header">
+            <div class="section-icon location-icon">
+              <ion-icon :icon="locationOutline"></ion-icon>
             </div>
-            <video ref="videoRef" autoplay playsinline class="webcam-video"></video>
-            <canvas ref="canvasRef" style="display: none;"></canvas>
-            <div class="webcam-controls">
-              <button class="capture-btn" @click="captureFromWebcam">
-                <ion-icon :icon="cameraOutline"></ion-icon>
-              </button>
-            </div>
+            <h3 class="section-title">Position</h3>
           </div>
-        </div>
-
-        <!-- Position (si pas de position cliquée) -->
-        <div class="form-section" v-if="!clickedLocation">
-          <h3 class="section-title">Position</h3>
           <div class="location-options">
             <button
               class="location-button"
@@ -129,7 +136,7 @@
               @click="useCurrentLocation"
             >
               <ion-icon :icon="locateOutline"></ion-icon>
-              <span>Position actuelle</span>
+              <span>Position sélectionnée</span>
             </button>
             <button
               class="location-button"
@@ -137,12 +144,17 @@
               @click="selectManualLocation"
             >
               <ion-icon :icon="navigateOutline"></ion-icon>
-              <span>Sur la carte</span>
+              <span>Choisir sur la carte</span>
             </button>
           </div>
           <div v-if="formData.location" class="location-preview">
-            <ion-icon :icon="locationOutline"></ion-icon>
-            <span>{{ formatLocation(formData.location) }}</span>
+            <div class="location-pin">
+              <ion-icon :icon="locationOutline"></ion-icon>
+            </div>
+            <div class="location-info">
+              <span class="location-label">Coordonnées</span>
+              <span class="location-coords">{{ formatLocation(formData.location) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -171,26 +183,24 @@ import {
   locateOutline,
   navigateOutline,
   locationOutline,
+  closeOutline,
+  checkmarkOutline,
+  alertCircleOutline,
+  flashOutline,
+  createOutline,
   imageOutline
 } from 'ionicons/icons';
+
+// Capacitor Camera
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 interface Props {
   isOpen: boolean;
   userLocation: { lat: number; lng: number } | null;
-  clickedLocation?: { lat: number; lng: number } | null;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  clickedLocation: null
-});
+const props = defineProps<Props>();
 const emit = defineEmits(['close', 'submit']);
-
-// Refs pour la webcam
-const videoRef = ref<HTMLVideoElement | null>(null);
-const canvasRef = ref<HTMLCanvasElement | null>(null);
-const showWebcam = ref(false);
-let mediaStream: MediaStream | null = null;
 
 // Types de problèmes
 const problemTypes = [
@@ -199,11 +209,11 @@ const problemTypes = [
   { value: 'info', icon: 'ℹ️', label: 'Information' }
 ];
 
-// Niveaux d'urgence
+// Niveaux d'urgence avec gradients
 const urgencyLevels = [
-  { value: 1, label: 'Faible', color: '#B0E0E6' },
-  { value: 2, label: 'Moyen', color: '#FFD8A8' },
-  { value: 3, label: 'Élevé', color: '#FFB3BA' }
+  { value: 1, label: 'Faible', gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)' },
+  { value: 2, label: 'Moyen', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+  { value: 3, label: 'Élevé', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' }
 ];
 
 // Données du formulaire
@@ -211,7 +221,7 @@ const formData = ref({
   type: '',
   urgency: null as number | null,
   description: '',
-  photo: '' as string,
+  photos: [] as string[],
   location: null as { lat: number; lng: number } | null,
   useCurrentLocation: true
 });
@@ -226,145 +236,50 @@ const selectUrgency = (level: number) => {
   formData.value.urgency = level;
 };
 
-// Prendre une photo avec la caméra
-const takePhoto = async () => {
-  try {
-    // Détecter si on est sur mobile ou navigateur
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    // Afficher un ActionSheet pour choisir la source
-    const actionSheet = await actionSheetController.create({
-      header: 'Ajouter une photo',
-      buttons: [
-        {
-          text: 'Prendre une photo',
-          icon: cameraOutline,
-          handler: () => {
-            if (isMobile) {
-              // Sur mobile, utiliser Capacitor Camera
-              capturePhoto(CameraSource.Camera);
-            } else {
-              // Sur navigateur, utiliser la webcam
-              openWebcam();
-            }
-          }
-        },
-        {
-          text: 'Choisir de la galerie',
-          icon: imageOutline,
-          handler: () => {
-            capturePhoto(CameraSource.Photos);
-          }
-        },
-        {
-          text: 'Annuler',
-          role: 'cancel'
+// Photo options avec action sheet
+const showPhotoOptions = async () => {
+  const actionSheet = await actionSheetController.create({
+    header: 'Ajouter une photo',
+    buttons: [
+      {
+        text: 'Prendre une photo',
+        icon: cameraOutline,
+        handler: () => {
+          takePhoto(CameraSource.Camera);
         }
-      ]
-    });
-    await actionSheet.present();
-  } catch (error) {
-    console.error('Erreur ActionSheet:', error);
-  }
+      },
+      {
+        text: 'Choisir depuis la galerie',
+        icon: imageOutline,
+        handler: () => {
+          takePhoto(CameraSource.Photos);
+        }
+      },
+      {
+        text: 'Annuler',
+        role: 'cancel'
+      }
+    ]
+  });
+  await actionSheet.present();
 };
 
-// Ouvrir la webcam (pour navigateur)
-const openWebcam = async () => {
+// Prendre/sélectionner une photo avec Capacitor Camera
+const takePhoto = async (source: CameraSource) => {
   try {
-    showWebcam.value = true;
-    
-    // Attendre que le DOM soit mis à jour
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    if (videoRef.value) {
-      mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment', // Caméra arrière sur mobile
-          width: { ideal: 800 },
-          height: { ideal: 800 }
-        },
-        audio: false
-      });
-      videoRef.value.srcObject = mediaStream;
-    }
-  } catch (error: any) {
-    console.error('Erreur webcam:', error);
-    showWebcam.value = false;
-    
-    const toast = await toastController.create({
-      message: 'Impossible d\'accéder à la caméra. Vérifiez les permissions. 📷',
-      duration: 3000,
-      color: 'warning',
-      position: 'top'
-    });
-    await toast.present();
-  }
-};
-
-// Fermer la webcam
-const closeWebcam = () => {
-  if (mediaStream) {
-    mediaStream.getTracks().forEach(track => track.stop());
-    mediaStream = null;
-  }
-  showWebcam.value = false;
-};
-
-// Capturer depuis la webcam
-const captureFromWebcam = async () => {
-  if (videoRef.value && canvasRef.value) {
-    const video = videoRef.value;
-    const canvas = canvasRef.value;
-    
-    // Définir la taille du canvas
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Dessiner l'image
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(video, 0, 0);
-      
-      // Convertir en base64
-      formData.value.photo = canvas.toDataURL('image/jpeg', 0.8);
-      
-      const toast = await toastController.create({
-        message: 'Photo capturée ! 📸',
-        duration: 1500,
-        color: 'success',
-        position: 'top'
-      });
-      await toast.present();
-    }
-  }
-  
-  closeWebcam();
-};
-
-// Capturer la photo depuis la source choisie
-const capturePhoto = async (source: CameraSource) => {
-  try {
-    const image = await Camera.getPhoto({
+    const photo = await Camera.getPhoto({
       quality: 80,
       allowEditing: false,
-      resultType: CameraResultType.Base64,
+      resultType: CameraResultType.DataUrl,
       source: source,
       width: 800,
-      height: 800,
-      // Important: désactiver l'input file pour utiliser la vraie caméra sur le web
-      webUseInput: source === CameraSource.Photos,
-      promptLabelHeader: 'Photo',
-      promptLabelPhoto: 'Prendre une photo',
-      promptLabelPicture: 'Choisir de la galerie',
-      promptLabelCancel: 'Annuler'
+      height: 800
     });
 
-    if (image.base64String) {
-      // Convertir en data URL pour l'affichage
-      formData.value.photo = `data:image/${image.format};base64,${image.base64String}`;
-      
+    if (photo.dataUrl) {
+      formData.value.photos.push(photo.dataUrl);
       const toast = await toastController.create({
-        message: 'Photo ajoutée ! 📸',
+        message: 'Photo ajoutée avec succès 📸',
         duration: 1500,
         color: 'success',
         position: 'top'
@@ -372,14 +287,17 @@ const capturePhoto = async (source: CameraSource) => {
       await toast.present();
     }
   } catch (error: any) {
-    console.error('Erreur caméra:', error);
-    
-    // Ne pas afficher d'erreur si l'utilisateur a annulé
+    // User cancelled ou permission denied
     if (error.message !== 'User cancelled photos app') {
+      console.error('Camera error:', error);
+      // Fallback avec placeholder pour dev/web
+      const placeholderPhoto = `https://via.placeholder.com/400x400/6366f1/ffffff?text=Photo+${formData.value.photos.length + 1}`;
+      formData.value.photos.push(placeholderPhoto);
+      
       const toast = await toastController.create({
-        message: 'Impossible d\'accéder à la caméra 📷',
-        duration: 2000,
-        color: 'warning',
+        message: 'Photo ajoutée (mode simulation) 📸',
+        duration: 1500,
+        color: 'tertiary',
         position: 'top'
       });
       await toast.present();
@@ -387,9 +305,9 @@ const capturePhoto = async (source: CameraSource) => {
   }
 };
 
-// Retirer la photo
-const removePhoto = () => {
-  formData.value.photo = '';
+// Retirer une photo
+const removePhoto = (index: number) => {
+  formData.value.photos.splice(index, 1);
 };
 
 // Utiliser la position actuelle
@@ -404,7 +322,6 @@ const useCurrentLocation = () => {
 const selectManualLocation = async () => {
   formData.value.useCurrentLocation = false;
   
-  // TODO: Permettre de sélectionner sur la carte
   const toast = await toastController.create({
     message: 'Sélection manuelle - À implémenter 🗺️',
     duration: 2000,
@@ -466,7 +383,7 @@ const resetForm = () => {
     type: '',
     urgency: null,
     description: '',
-    photo: '',
+    photos: [],
     location: null,
     useCurrentLocation: true
   };
@@ -480,77 +397,128 @@ const closeModal = () => {
 
 // Initialiser la position quand le modal s'ouvre
 watch(() => props.isOpen, (isOpen) => {
-  if (isOpen) {
-    // Priorité à la position cliquée, sinon position de l'utilisateur
-    if (props.clickedLocation) {
-      formData.value.location = { ...props.clickedLocation };
-      formData.value.useCurrentLocation = false;
-    } else if (props.userLocation) {
-      formData.value.location = { ...props.userLocation };
-      formData.value.useCurrentLocation = true;
-    }
+  if (isOpen && props.userLocation) {
+    formData.value.location = { ...props.userLocation };
   }
 });
 </script>
 
 <style scoped>
-.modal-content {
-  padding: 24px;
-  padding-bottom: 40px;
+/* Modal Styles */
+.report-modal {
+  --border-radius: 24px 24px 0 0;
 }
 
-/* Location Card */
-.location-card {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
-  border-radius: var(--radius-xl);
-  padding: 18px;
-  margin-bottom: 28px;
-  border: 2px solid rgba(16, 185, 129, 0.2);
+.report-modal ion-toolbar {
+  --background: linear-gradient(135deg, var(--ion-color-primary, #6366f1), var(--ion-color-secondary, #8b5cf6));
+  --color: white;
+  --min-height: 60px;
 }
 
-.location-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.report-modal ion-title {
+  font-weight: 700;
+  font-size: 17px;
 }
 
-.location-card-icon {
-  font-size: 32px;
-  color: var(--success);
+.close-btn {
+  --color: white;
+  font-size: 24px;
 }
 
-.location-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.location-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.location-coords {
-  font-size: 0.875rem;
-  color: var(--success);
+.submit-btn {
+  --color: white;
   font-weight: 600;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 14px;
+}
+
+.modal-gradient-bg {
+  --background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 50%, #f0fdfa 100%);
+}
+
+.modal-content {
+  padding: 20px;
+  padding-bottom: 40px;
 }
 
 .form-section {
   margin-bottom: 28px;
+  opacity: 0;
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+.form-section:nth-child(1) { animation-delay: 0.1s; }
+.form-section:nth-child(2) { animation-delay: 0.15s; }
+.form-section:nth-child(3) { animation-delay: 0.2s; }
+.form-section:nth-child(4) { animation-delay: 0.25s; }
+.form-section:nth-child(5) { animation-delay: 0.3s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.section-icon.type-icon {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+  color: #ef4444;
+}
+
+.section-icon.urgency-icon {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+  color: #f59e0b;
+}
+
+.section-icon.desc-icon {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+  color: #6366f1;
+}
+
+.section-icon.photo-icon {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05));
+  color: #8b5cf6;
+}
+
+.section-icon.location-icon {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+  color: #10b981;
 }
 
 .section-title {
-  font-family: 'Poppins', sans-serif;
-  font-size: 0.938rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
 }
 
+.optional-tag {
+  font-size: 12px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+/* Type Buttons */
 .type-buttons {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -558,145 +526,190 @@ watch(() => props.isOpen, (isOpen) => {
 }
 
 .type-button {
-  background: var(--surface);
-  border: 2px solid var(--border-light);
-  border-radius: var(--radius-xl);
-  padding: 18px 10px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
 .type-button:hover {
-  border-color: var(--border-default);
-  background: var(--gray-50);
-}
-
-.type-button:active {
-  transform: scale(0.95);
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
 }
 
 .type-button.active {
   border-color: transparent;
-  transform: scale(1.02);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .type-button.active.urgent {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: var(--danger);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+  border-color: #ef4444;
 }
 
 .type-button.active.anomaly {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: var(--warning);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+  border-color: #f59e0b;
 }
 
 .type-button.active.info {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: var(--info);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
+  border-color: #06b6d4;
 }
 
-.type-icon {
-  font-size: 32px;
+.type-icon-emoji {
+  font-size: 36px;
+  line-height: 1;
 }
 
 .type-label {
-  font-size: 0.813rem;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #64748b;
 }
 
 .type-button.active .type-label {
-  color: var(--text-primary);
+  color: #1e293b;
 }
 
+.type-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ion-color-primary, #6366f1), var(--ion-color-secondary, #8b5cf6));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.type-check ion-icon {
+  font-size: 14px;
+  color: white;
+}
+
+/* Urgency Buttons */
 .urgency-levels {
+  display: flex;
+  gap: 12px;
+}
+
+.urgency-button {
+  flex: 1;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.urgency-button:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.urgency-button.active {
+  border-color: var(--ion-color-primary, #6366f1);
+  transform: scale(1.03);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
+}
+
+.urgency-number {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.urgency-button.active .urgency-number {
+  transform: scale(1.1);
+}
+
+.urgency-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.urgency-button.active .urgency-label {
+  color: #1e293b;
+}
+
+/* Textarea */
+.textarea-wrapper {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.textarea-wrapper:focus-within {
+  border-color: var(--ion-color-primary, #6366f1);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.modern-textarea {
+  --background: transparent;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.modern-textarea::part(native) {
+  background: transparent;
+}
+
+/* Photos Container */
+.photos-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
-.urgency-button {
-  background: var(--surface);
-  border: 2px solid var(--border-light);
-  border-radius: var(--radius-xl);
-  padding: 16px 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.urgency-button:hover {
-  border-color: var(--border-default);
-}
-
-.urgency-button:active {
-  transform: scale(0.95);
-}
-
-.urgency-button.active {
-  border-color: var(--primary);
-  transform: scale(1.03);
-  box-shadow: var(--shadow-sm);
-  background: rgba(99, 102, 241, 0.05);
-}
-
-.urgency-number {
-  width: 46px;
-  height: 46px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: white;
-  box-shadow: var(--shadow-sm);
-}
-
-.urgency-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.cute-textarea {
-  --background: var(--gray-50);
-  --border-radius: var(--radius-lg);
-  --padding-start: 18px;
-  --padding-top: 16px;
-  border: 2px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  transition: all var(--transition-base);
-  font-size: 0.938rem;
-}
-
-.cute-textarea:focus-within {
-  border-color: var(--primary);
-  --background: var(--surface);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-}
-
-.photos-container {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-
 .photo-preview {
   position: relative;
   aspect-ratio: 1;
-  border-radius: var(--radius-lg);
+  border-radius: 16px;
   overflow: hidden;
-  border: 2px solid var(--border-light);
-  box-shadow: var(--shadow-sm);
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .photo-preview img {
@@ -709,17 +722,17 @@ watch(() => props.isOpen, (isOpen) => {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-full);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   background: rgba(255, 255, 255, 0.95);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
 }
 
 .remove-photo:hover {
@@ -728,238 +741,194 @@ watch(() => props.isOpen, (isOpen) => {
 }
 
 .remove-photo ion-icon {
-  font-size: 20px;
-  color: var(--danger);
+  font-size: 22px;
+  color: #ef4444;
 }
 
 .add-photo-button {
   aspect-ratio: 1;
-  border-radius: var(--radius-lg);
-  border: 2px dashed var(--border-default);
-  background: var(--gray-50);
+  border-radius: 16px;
+  border: 2px dashed #cbd5e1;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.3s ease;
 }
 
 .add-photo-button:hover {
-  border-color: var(--primary);
-  background: rgba(99, 102, 241, 0.05);
+  border-color: var(--ion-color-primary, #6366f1);
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  transform: scale(1.02);
 }
 
 .add-photo-button:active {
-  transform: scale(0.95);
+  transform: scale(0.98);
 }
 
-.add-photo-button ion-icon {
-  font-size: 32px;
-  color: var(--primary);
+.add-photo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--ion-color-primary, #6366f1), var(--ion-color-secondary, #8b5cf6));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-photo-icon ion-icon {
+  font-size: 22px;
+  color: white;
 }
 
 .add-photo-button span {
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: #64748b;
   font-weight: 600;
 }
 
+.photo-count {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* Location Options */
 .location-options {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .location-button {
-  background: var(--surface);
-  border: 2px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 16px 12px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.3s ease;
 }
 
 .location-button:hover {
-  border-color: var(--border-default);
-}
-
-.location-button:active {
-  transform: scale(0.95);
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
 }
 
 .location-button.active {
-  border-color: transparent;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
-  box-shadow: var(--shadow-sm);
-}
-
-.location-button.active ion-icon {
-  color: var(--success);
+  border-color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 }
 
 .location-button ion-icon {
-  font-size: 26px;
-  color: var(--text-muted);
+  font-size: 28px;
+  color: #64748b;
+}
+
+.location-button.active ion-icon {
+  color: #10b981;
 }
 
 .location-button span {
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #64748b;
+  text-align: center;
+}
+
+.location-button.active span {
+  color: #1e293b;
 }
 
 .location-preview {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--gray-50);
-  border: 2px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  font-size: 0.813rem;
-  color: var(--text-secondary);
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  gap: 14px;
+  padding: 16px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
 }
 
-.location-preview ion-icon {
-  font-size: 20px;
-  color: var(--primary);
+.location-pin {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.location-pin ion-icon {
+  font-size: 22px;
+  color: #10b981;
+}
+
+.location-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.location-label {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.location-coords {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 600;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
 }
 
 /* Responsive */
 @media (max-width: 380px) {
-  .type-buttons,
-  .urgency-levels {
+  .type-buttons {
+    grid-template-columns: 1fr;
     gap: 10px;
   }
   
-  .type-button,
-  .urgency-button {
-    padding: 14px 8px;
+  .type-button {
+    flex-direction: row;
+    padding: 14px 16px;
+    justify-content: flex-start;
   }
   
-  .type-icon {
+  .type-icon-emoji {
     font-size: 28px;
+  }
+  
+  .urgency-levels {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .urgency-button {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 14px 16px;
+    gap: 14px;
   }
   
   .urgency-number {
     width: 40px;
     height: 40px;
-    font-size: 1rem;
+    font-size: 18px;
   }
-}
-
-/* Webcam Overlay */
-.webcam-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  backdrop-filter: blur(8px);
-}
-
-.webcam-container {
-  background: var(--surface);
-  border-radius: var(--radius-2xl);
-  overflow: hidden;
-  max-width: 500px;
-  width: 100%;
-  box-shadow: var(--shadow-xl);
-}
-
-.webcam-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 22px;
-  background: var(--gradient-primary);
-}
-
-.webcam-header h3 {
-  margin: 0;
-  color: white;
-  font-family: 'Poppins', sans-serif;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.webcam-close {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  border-radius: var(--radius-full);
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.webcam-close:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
-}
-
-.webcam-close ion-icon {
-  font-size: 24px;
-  color: white;
-}
-
-.webcam-video {
-  width: 100%;
-  max-height: 400px;
-  object-fit: cover;
-  display: block;
-  background: #000;
-}
-
-.webcam-controls {
-  padding: 24px;
-  display: flex;
-  justify-content: center;
-  background: var(--gray-50);
-}
-
-.capture-btn {
-  width: 72px;
-  height: 72px;
-  border-radius: var(--radius-full);
-  background: var(--gradient-primary);
-  border: 4px solid white;
-  box-shadow: var(--shadow-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.capture-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
-}
-
-.capture-btn:active {
-  transform: scale(0.95);
-}
-
-.capture-btn ion-icon {
-  font-size: 32px;
-  color: white;
+  
+  .photos-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>
