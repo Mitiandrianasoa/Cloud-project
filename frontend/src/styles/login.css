@@ -1,0 +1,304 @@
+/* frontend/src/styles/login.css */
+/* Login Page Specific Styles - Road Safety Theme */
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a365d 0%, #2d5a87 50%, #1e3a8a 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Road decoration elements */
+.login-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+/* Road stripes decoration */
+.login-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: repeating-linear-gradient(
+    90deg,
+    #f59e0b 0px,
+    #f59e0b 30px,
+    #1f2937 30px,
+    #1f2937 60px
+  );
+}
+
+.login-card {
+  background-color: var(--color-white);
+  padding: 45px 40px;
+  border-radius: 16px;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  width: 100%;
+  max-width: 440px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Orange safety stripe on card */
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%);
+  border-radius: 16px 16px 0 0;
+}
+
+/* Shield icon decoration */
+.login-header {
+  text-align: center;
+  margin-bottom: 35px;
+  position: relative;
+}
+
+.login-header::before {
+  content: '🛡️';
+  font-size: 48px;
+  display: block;
+  margin-bottom: 15px;
+}
+
+.login-title {
+  color: #1e3a8a;
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+
+.login-subtitle {
+  color: #64748b;
+  font-size: 15px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.login-error {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  color: #991b1b;
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid #fecaca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.login-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.login-input {
+  padding: 14px 18px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.25s ease;
+  outline: none;
+  background-color: #f9fafb;
+  color: #1f2937;
+}
+
+.login-input:focus {
+  border-color: #1e3a8a;
+  background-color: var(--color-white);
+  box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1);
+}
+
+.login-input::placeholder {
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.login-button {
+  padding: 16px;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 12px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.login-button:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.login-button-primary {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  border-bottom: 4px solid #1e3a8a;
+}
+
+.login-button-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(30, 64, 175, 0.35);
+  border-bottom: 4px solid #1e3a8a;
+}
+
+.login-button-primary:active:not(:disabled) {
+  transform: translateY(0);
+  border-bottom: 2px solid #1e3a8a;
+}
+
+.login-button:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: not-allowed;
+  border-bottom: 4px solid #6b7280;
+  transform: none;
+  box-shadow: none;
+}
+
+.login-button.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.login-button.loading::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  top: 50%;
+  left: 50%;
+  margin-left: -12px;
+  margin-top: -12px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.login-switch {
+  margin-top: 28px;
+  background: none;
+  border: none;
+  color: #1e3a8a;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.login-switch:hover {
+  color: #2563eb;
+  background-color: rgba(30, 58, 138, 0.05);
+  text-decoration: underline;
+}
+
+/* Footer decoration */
+.login-footer {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.login-footer-text {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.login-footer-text strong {
+  color: #f59e0b;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 35px 25px;
+    margin: 20px;
+  }
+  
+  .login-title {
+    font-size: 26px;
+  }
+  
+  .login-header::before {
+    font-size: 40px;
+  }
+}
+
