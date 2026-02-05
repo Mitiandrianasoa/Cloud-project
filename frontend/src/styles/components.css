@@ -8,7 +8,14 @@
   gap: 25px;
   margin-bottom: 40px;
 }
+.main-content {
+  transition: margin-left 0.3s ease;
+  margin-left: 250px; /* Taille de ta sidebar ouverte */
+}
 
+.main-content.shifted {
+  margin-left: 80px; /* Taille de ta sidebar repliée */
+}
 .charts-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

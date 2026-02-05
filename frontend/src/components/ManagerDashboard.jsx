@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import DangerPieChart from './DangerPieChart';
+import ProgressStats from './ProgressStats';
 import { useAuth } from './AuthContext';
 import StatusUpdater from './StatusUpdater';
 
@@ -8,7 +10,14 @@ const ManagerDashboard = () => {
   const { user } = useAuth();
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const getProgress = (status) => {
+  switch (status?.toUpperCase()) {
+    case 'EN_COURS': return 50;
+    case 'RESOLU':
+    case 'TERMINÉ': return 100;
+    default: return 0;
+  }
+};  
   const fetchIssues = async () => {
     try {
       const response = await fetch('http://localhost:3000/road_issues');
@@ -29,8 +38,7 @@ const ManagerDashboard = () => {
   if (!user || Number(user.role_id) !== 3) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
-        <h2>🚫 Accès Refusé</h2>
-        <p>Cette interface est réservée à l'administration.</p>
+       
       </div>
     );
   }
@@ -41,7 +49,10 @@ const ManagerDashboard = () => {
         <h2>🛠️ Gestion des Signalements</h2>
         <p>Interface de pilotage - Manager : <strong>{user.name}</strong></p>
       </header>
-
+<div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+      <ProgressStats issues={issues} />
+      <DangerPieChart issues={issues} />
+    </div>
       {loading ? (
         <p>Chargement des données...</p>
       ) : (
@@ -54,6 +65,7 @@ const ManagerDashboard = () => {
               <th>Description</th>
               <th>Statut Actuel</th>
               <th>Actions Manager</th>
+              <th>Avancement</th>
             </tr>
           </thead>
           <tbody>
@@ -79,6 +91,33 @@ const ManagerDashboard = () => {
                     onUpdate={fetchIssues} // Rafraîchit la liste après modification
                   />
                 </td>
+                <td style={{ padding: '12px', minWidth: '200px' }}>
+      {/* Barre de progression */}
+      <div style={progressContainer}>
+        <div style={progressBar(getProgress(issue.status))}>
+          {getProgress(issue.status)}%
+        </div>
+      </div>
+
+      {/* Détail des dates par étape */}
+      <div style={timelineStyle}>
+        <div style={stepStyle(true)}>
+          <b>Signalé:</b> {new Date(issue.created_at).toLocaleDateString()}
+        </div>
+        
+        {issue.started_at && (
+          <div style={stepStyle(issue.status !== 'NOUVEAU')}>
+            <b>Lancé:</b> {new Date(issue.started_at).toLocaleDateString()}
+          </div>
+        )}
+
+        {issue.resolved_at && (
+          <div style={stepStyle(issue.status === 'RESOLU' || issue.status === 'TERMINÉ')}>
+            ✅ <b>Terminé:</b> {new Date(issue.resolved_at).toLocaleDateString()}
+          </div>
+        )}
+      </div>
+    </td>
               </tr>
             ))}
           </tbody>
@@ -106,5 +145,36 @@ const statusBadgeStyle = (status) => ({
   backgroundColor: status === 'EN_ATTENTE' ? '#f3f4f6' : status === 'EN_COURS' ? '#dbeafe' : '#dcfce7',
   color: status === 'EN_ATTENTE' ? '#374151' : status === 'EN_COURS' ? '#1e40af' : '#166534'
 });
+const progressContainer = {
+  width: '100%',
+  backgroundColor: '#e5e7eb',
+  borderRadius: '10px',
+  height: '14px',
+  marginBottom: '8px',
+  overflow: 'hidden'
+};
 
+const progressBar = (pct) => ({
+  width: `${pct}%`,
+  height: '100%',
+  backgroundColor: pct === 100 ? '#10b981' : pct === 50 ? '#3b82f6' : '#9ca3af',
+  color: 'white',
+  fontSize: '9px',
+  textAlign: 'center',
+  transition: 'width 0.3s ease'
+});
+
+const timelineStyle = {
+  fontSize: '10px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '2px',
+  borderLeft: '2px solid #ddd',
+  paddingLeft: '8px'
+};
+
+const stepStyle = (isActive) => ({
+  color: isActive ? '#374151' : '#9ca3af',
+  fontWeight: isActive ? '500' : 'normal'
+});
 export default ManagerDashboard;

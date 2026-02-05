@@ -1,30 +1,45 @@
 import React, { useState, useCallback } from 'react';
 import Layout from './Layout/Layout';
-import DashboardHome from './Dashboard/DashboardHome';
+import DashboardHome from './Dashboard/DashboardHome'; // La Carte
+import ManagerDashboard from './ManagerDashboard';     // Les Stats + Tableau
 import SyncButton from './SyncButton';
 import PullButton from './PullBoutton';
 import '../styles/components.css';
 
 const Dashboard = ({ user, onLogout }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [activeView, setActiveView] = useState('map'); // 'map' ou 'stats'
 
   const handleRefresh = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
   return (
-    <Layout user={user} onLogout={onLogout}>
-      <div className="dashboard-header">
+    <Layout 
+      user={user} 
+      onLogout={onLogout} 
+      currentView={activeView} 
+      setView={setActiveView}
+    >
+      <div style={headerStyle}>
         <h2 className="dashboard-title">
-          📍 Gestion des Signalements Routiers
+          {activeView === 'map' ? '📍 Carte des Signalements' : '📊 Pilotage & Statistiques'}
         </h2>
-        <div className="dashboard-actions">
+        
+        <div className="dashboard-actions" style={{ display: 'flex', gap: '10px' }}>
+          {/* Les boutons de synchro ne sont utiles que pour le manager */}
           <SyncButton /> 
           <PullButton onRefresh={handleRefresh} />
         </div>
       </div>
 
-      <DashboardHome refreshKey={refreshTrigger} /> 
+      <div className="dashboard-content" style={{ padding: '20px' }}>
+        {activeView === 'map' ? (
+          <DashboardHome refreshKey={refreshTrigger} />
+        ) : (
+          <ManagerDashboard issuesRefreshKey={refreshTrigger} />
+        )}
+      </div>
     </Layout>
   );
 };
@@ -36,7 +51,7 @@ const headerStyle = {
   padding: '15px 25px',
   background: '#ffffff',
   boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-  borderBottom: '2px solid #1e3a8a' // Rappel du bleu sécurité
+  borderBottom: '3px solid #3b82f6'
 };
 
 export default Dashboard;

@@ -15,37 +15,40 @@ const StatusUpdater = ({ issueId, currentStatus, onUpdate }) => {
 
   const handleUpdate = async () => {
   setLoading(true);
-  console.log("🚀 Début de la mise à jour pour l'ID:", issueId); // LOG DE DÉPART
-
   try {
-    // 1. PostgreSQL
+    // 1. Mise à jour PostgreSQL
     const response = await fetch(`http://localhost:3000/road_issues/${issueId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: status })
     });
 
-    if (response.ok) {
-      console.log("✅ PostgreSQL mis à jour avec succès");
+    if (!response.ok) throw new Error("Erreur PostgreSQL");
 
-      // 2. FIREBASE
-      console.log("☁️ Tentative de mise à jour Firebase...");
-      const issueRef = doc(db, "road_issues", issueId);
-      
-      await updateDoc(issueRef, {
-        status: status,
-        updated_at: new Date().toISOString()
-      });
+    // 2. Préparation des données pour Firebase
+    const now = new Date().toISOString();
+    const firebaseUpdate = {
+      status: status,
+      updated_at: now
+    };
 
-      console.log("🔥 SUCCESS: Firebase a bien été mis à jour !"); // CE LOG DOIT APPARAÎTRE
-      alert("Statut synchronisé partout ! ✅");
-      
-      if (onUpdate) onUpdate();
-    } else {
-      console.error("❌ Erreur PostgreSQL:", response.statusText);
+    // On ajoute les dates spécifiques selon le statut
+    if (status === 'EN_COURS') {
+      firebaseUpdate.started_at = now;
+    } else if (status === 'RESOLU') {
+      firebaseUpdate.resolved_at = now;
     }
+
+    // 3. Mise à jour Firebase
+    const issueRef = doc(db, "road_issues", issueId);
+    await updateDoc(issueRef, firebaseUpdate);
+
+    alert("Statut et dates mis à jour avec succès ! ✅");
+    if (onUpdate) onUpdate();
+
   } catch (err) {
-    console.error("💥 ERREUR GLOBALE:", err); // LOG EN CAS DE CRASH (ex: ID inexistant dans Firebase)
+    console.error("Erreur de synchro:", err);
+    alert("Erreur lors de la mise à jour.");
   } finally {
     setLoading(false);
   }

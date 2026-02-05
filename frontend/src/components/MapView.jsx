@@ -86,6 +86,7 @@ const visibleMarkers = markers.filter(m => {
                 <p><strong>Statut :</strong> <code>{m.status || 'EN_ATTENTE'}</code></p>
                 <p><strong>Entreprise :</strong> {m.company || 'Non assignée'}</p>
                 <p><strong>Budget :</strong> {m.budget ? `${m.budget} Ar` : 'À définir'}</p>
+                <p><strong>Surface :</strong> {m.surface ? `${m.surface} m2` : 'À définir'}</p>
                 
                 <hr style={{ border: '0.5px solid #eee' }} />
                 <p style={{ fontStyle: 'italic', color: '#555' }}>{m.description}</p>

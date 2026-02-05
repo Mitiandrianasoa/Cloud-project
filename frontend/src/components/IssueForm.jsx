@@ -8,8 +8,8 @@ const IssueForm = ({ coords, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    niveau_danger: 'MOYEN',
-    type: 'anomaly',
+    niveau_danger: '',
+    type: '',
     surface: '',
     budget: '',
     company: '',
