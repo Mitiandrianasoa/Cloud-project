@@ -26,40 +26,58 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (attempts >= 3) {
-      setErrorMessage("Compte bloqué : trop de tentatives.");
-      return;
-    }
-
     setLoading(true);
     setErrorMessage('');
 
+    // --- 1. VÉRIFICATION DU SEUIL DE TENTATIVES ---
+    if (attempts >= 3) {
+      const msg = "Compte bloqué localement : trop de tentatives.";
+      setErrorMessage(msg);
+      setLoading(false);
+      try {
+        await axios.post('http://localhost:3000/users/block', { 
+          email: formData.email, 
+          reason: "3 échecs consécutifs sur l'interface" 
+        });
+      } catch (err) { console.error("Erreur log blocage:", err); }
+      return;
+    }
+
     try {
       if (!isLogin) {
+        // --- 2. LOGIQUE INSCRIPTION (FIREBASE + DB LOCALE) ---
         const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
         await updateProfile(userCredential.user, { displayName: formData.username });
-        await axios.post('http://localhost:3000/users', {
+        
+        const res = await axios.post('http://localhost:3000/users', {
+          id: userCredential.user.uid,
           email: formData.email,
-          password: formData.password,
           name: formData.username,
-          role_id: 2
+          role_id: 2, // USER par défaut
+          provider: 'FIREBASE'
         });
-        alert("Compte créé ! Connectez-vous.");
-        setIsLogin(true);
+        
+        login(res.data);
+        navigate('/dashboard');
+
       } else {
+        // --- 3. LOGIQUE CONNEXION ---
         try {
+          // A. Authentification Firebase
           const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-          const localRes = await axios.get(`http://localhost:3000/users`);
-          const localUser = localRes.data.find(u => u.email === userCredential.user.email);
+          const uid = userCredential.user.uid;
+
+          // B. Récupération immédiate du rôle en base locale (Route user/:id)
+          const localRes = await axios.get(`http://localhost:3000/users/${uid}`);
           
-          if (localUser) {
-            login(localUser);
-            navigate('/dashboard');
-          } else {
-            throw new Error("Compte Firebase valide mais absent de la base locale.");
-          }
-        } catch (firebaseErr) {
+          login(localRes.data); 
+          setAttempts(0);
+          navigate('/dashboard');
+
+        } catch (firebaseOrDbErr) {
+          // C. FALLBACK : Si Firebase échoue OU si l'utilisateur n'est pas encore en DB locale
+          console.log("Échec Firebase/DB locale, tentative Login classique...");
+          
           try {
             const localResponse = await axios.post('http://localhost:3000/login', {
               email: formData.email,
@@ -69,15 +87,22 @@ const LoginPage = () => {
             login(localResponse.data.user);
             setAttempts(0);
             navigate('/dashboard');
+
           } catch (localErr) {
+            // D. ÉCHEC FINAL : Gestion de l'erreur et du compteur
             const newAttempts = attempts + 1;
             setAttempts(newAttempts);
-            setErrorMessage(`Identifiants incorrects. Il reste ${3 - newAttempts} essais.`);
+            
+            if (localErr.response && localErr.response.status === 403) {
+              setErrorMessage("Ce compte est banni ou bloqué en base de données.");
+            } else {
+              setErrorMessage(`Identifiants incorrects. Tentative ${newAttempts}/3.`);
+            }
           }
         }
       }
     } catch (globalError) {
-      setErrorMessage("Erreur : " + globalError.message);
+      setErrorMessage("Erreur système : " + globalError.message);
     } finally {
       setLoading(false);
     }
@@ -88,11 +113,11 @@ const LoginPage = () => {
       <div className="login-card">
         <div className="login-header">
           <h2 className="login-title">ROAD SAFETY</h2>
-          <p className="login-subtitle">Plateforme de Gestion des Infrastructures Routières</p>
+          <p className="login-subtitle">Gestion des Infrastructures Routières</p>
         </div>
         
         {errorMessage && (
-          <div className="login-error">
+          <div className="login-error" style={{ color: 'red', marginBottom: '15px', fontWeight: 'bold' }}>
             ⚠️ {errorMessage}
           </div>
         )}
@@ -101,64 +126,31 @@ const LoginPage = () => {
           {!isLogin && (
             <div className="login-input-group">
               <label className="login-label">Nom complet</label>
-              <input 
-                name="username" 
-                type="text" 
-                placeholder="Jean Dupont" 
-                value={formData.username} 
-                onChange={handleChange} 
-                className="login-input" 
-                required 
-              />
+              <input name="username" type="text" placeholder="Nom" value={formData.username} onChange={handleChange} className="login-input" required />
             </div>
           )}
           
           <div className="login-input-group">
-            <label className="login-label">Identifiant (Email)</label>
-            <input 
-              name="email" 
-              type="email" 
-              placeholder="agent@police.mg" 
-              value={formData.email} 
-              onChange={handleChange} 
-              className="login-input" 
-              required 
-            />
+            <label className="login-label">Email</label>
+            <input name="email" type="email" placeholder="agent@police.mg" value={formData.email} onChange={handleChange} className="login-input" required />
           </div>
           
           <div className="login-input-group">
             <label className="login-label">Mot de passe</label>
-            <input 
-              name="password" 
-              type="password" 
-              placeholder="••••••••" 
-              value={formData.password} 
-              onChange={handleChange} 
-              className="login-input" 
-              required 
-            />
+            <input name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} className="login-input" required />
           </div>
           
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className={`login-button login-button-primary ${loading ? 'loading' : ''}`}
-          >
-            {loading ? 'AUTHENTIFICATION...' : (isLogin ? 'SE CONNECTER' : "CRÉER L'ACCÈS")}
+          <button type="submit" disabled={loading} className="login-button login-button-primary">
+            {loading ? 'CHARGEMENT...' : (isLogin ? 'SE CONNECTER' : "CRÉER L'ACCÈS")}
           </button>
         </form>
 
-        <button 
-          onClick={() => { setIsLogin(!isLogin); setErrorMessage(''); }} 
-          className="login-switch"
-        >
-          {isLogin ? "Demander un accès (Firebase Cloud)" : "Retour à la connexion locale"}
+        <button onClick={() => { setIsLogin(!isLogin); setErrorMessage(''); }} className="login-switch">
+          {isLogin ? "Nouveau ? Créer un compte Cloud" : "Déjà inscrit ? Connexion"}
         </button>
 
         <div className="login-footer">
-          <p className="login-footer-text">
-            🔒 Système sécurisé par <strong>Road Safety Madagascar</strong>
-          </p>
+          <p className="login-footer-text">🔒 Sécurisé par Road Safety Madagascar</p>
         </div>
       </div>
     </div>
@@ -166,4 +158,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-

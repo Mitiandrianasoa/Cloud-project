@@ -3,16 +3,27 @@ import Layout from './Layout/Layout';
 import DashboardHome from './Dashboard/DashboardHome'; // La Carte
 import ManagerDashboard from './ManagerDashboard';     // Les Stats + Tableau
 import SyncButton from './SyncButton';
+import UserManagement from './UserManagement';
 import PullButton from './PullBoutton';
 import '../styles/components.css';
 
 const Dashboard = ({ user, onLogout }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [activeView, setActiveView] = useState('map'); // 'map' ou 'stats'
+  const [activeView, setActiveView] = useState('map');
 
   const handleRefresh = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
+
+  // Définition dynamique du titre selon la vue
+  const getTitle = () => {
+    switch(activeView) {
+      case 'map': return '📍 Carte des Signalements';
+      case 'stats': return '📊 Pilotage & Statistiques';
+      case 'users': return '👥 Gestion des Utilisateurs & Accès';
+      default: return 'Dashboard';
+    }
+  };
 
   return (
     <Layout 
@@ -22,28 +33,30 @@ const Dashboard = ({ user, onLogout }) => {
       setView={setActiveView}
     >
       <div style={headerStyle}>
-        <h2 className="dashboard-title">
-          {activeView === 'map' ? '📍 Carte des Signalements' : '📊 Pilotage & Statistiques'}
-        </h2>
+        <h2 className="dashboard-title">{getTitle()}</h2>
         
         <div className="dashboard-actions" style={{ display: 'flex', gap: '10px' }}>
-          {/* Les boutons de synchro ne sont utiles que pour le manager */}
-          <SyncButton /> 
-          <PullButton onRefresh={handleRefresh} />
+          {/* Les boutons de synchro s'affichent pour stats ou map */}
+          {activeView !== 'users' && (
+            <>
+              <SyncButton /> 
+              <PullButton onRefresh={handleRefresh} />
+            </>
+          )}
         </div>
       </div>
 
       <div className="dashboard-content" style={{ padding: '20px' }}>
-        {activeView === 'map' ? (
-          <DashboardHome refreshKey={refreshTrigger} />
-        ) : (
-          <ManagerDashboard issuesRefreshKey={refreshTrigger} />
-        )}
+        {/* LOGIQUE D'AFFICHAGE DES VUES */}
+        {activeView === 'map' && <DashboardHome refreshKey={refreshTrigger} />}
+        
+        {activeView === 'stats' && <ManagerDashboard issuesRefreshKey={refreshTrigger} />}
+        
+        {activeView === 'users' && <UserManagement />}
       </div>
     </Layout>
   );
 };
-
 const headerStyle = {
   display: 'flex', 
   justifyContent: 'space-between', 

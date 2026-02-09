@@ -20,6 +20,7 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          
           <Route path="/login" element={<LoginPage />} />
           
           <Route 

@@ -36,26 +36,26 @@ const visibleMarkers = markers.filter(m => {
     return m.status?.toUpperCase() !== 'EN_ATTENTE';
   }
   return true;
-});    // USER (2) et MANAGER (3) voient tout
+});     
    
   const MapEvents = () => {
-    useMapEvents({
-      click(e) { 
-        // Seuls USER et MANAGER peuvent cliquer pour signaler
-        if (user && user.role_id >= 2) {
-            setClickPos(e.latlng); 
-        }
-      },
-    });
-    return null;
-  };
-
+  useMapEvents({
+    click(e) { 
+      if (user && user.role_id > 1) {
+          console.log("Clic détecté aux coordonnées :", e.latlng); // Pour debug
+          setClickPos(e.latlng); 
+      } else {
+          console.log(user.role_id);
+      }
+    },
+  });
+  return null;
+};
   return (
     <MapContainer center={[-18.9149, 47.5316]} zoom={13} style={{ height: '500px', width: '100%' }}>
       <TileLayer url={tileUrl} />
       <MapEvents />
 
-      {/* Utilisation de visibleMarkers au lieu de markers */}
       {visibleMarkers.map((m, i) => {
         const lat = parseFloat(m.latitude);
         const lng = parseFloat(m.longitude);

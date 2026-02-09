@@ -10,7 +10,7 @@ const Sidebar = ({ isOpen, toggleSidebar, currentView, setView }) => {
   const menuItems = [
     { id: 'map', icon: Home, label: 'Accueil / Carte', minRole: 1 },
     { id: 'stats', icon: BarChart2, label: 'Statistiques Manager', minRole: 3 },
-    { id: 'users', icon: Users, label: 'Utilisateurs', minRole: 3 },
+    { id: 'users', icon: Users, label: 'Gestion Utilisateurs', minRole: 3 },
     { id: 'settings', icon: Settings, label: 'Paramètres', minRole: 1 },
   ];
 
