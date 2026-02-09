@@ -7,7 +7,7 @@ const Navbar = ({ user, onLogout, sidebarOpen }) => {
   return (
     <header className={`navbar ${sidebarOpen ? '' : 'shifted'}`}>
       <h1 className="navbar-title">
-        Bonjour {user?.name || 'Utilisateur'} ! 👋
+        Bonjour {user?.name || 'Utilisateur'} ! 
       </h1>
       <div className="navbar-user">
         <div className="notification" title="Notifications">

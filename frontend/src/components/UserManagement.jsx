@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { db } from '../firebase'; // Ton instance Firestore
+import { doc, deleteDoc } from "firebase/firestore";
 import axios from 'axios';
 
 const UserManagement = () => {
@@ -27,21 +29,31 @@ const UserManagement = () => {
   }, []);
 
   // 2. Action : Débloquer un utilisateur
-  const handleUnblock = async (userId) => {
-    if (window.confirm("Voulez-vous réactiver l'accès pour cet agent ?")) {
+  const handleUnblock = async (user) => { // On passe l'objet user entier au lieu de juste l'id
+    if (window.confirm(`Voulez-vous réactiver l'accès pour ${user.name} ?`)) {
       try {
-        await axios.delete(`http://localhost:3000/users/unblock/${userId}`);
+        // --- A. SUPPRESSION LOCALE (Postgres) ---
+        await axios.delete(`http://localhost:3000/users/unblock/${user.id}`);
+
+        // --- B. SUPPRESSION CLOUD (Firebase Firestore) ---
+        // On utilise la même logique que pour le blocage : email avec "_"
+        const userEmailKey = user.email.replace(/\./g, '_');
+        const docRef = doc(db, "blacklisted_users", userEmailKey);
         
-        // Mise à jour locale de l'état pour éviter un rechargement complet
-        setUsers(users.map(user => 
-          user.id === userId ? { ...user, is_blocked: false } : user
+        await deleteDoc(docRef);
+
+        // --- C. MISE À JOUR DE L'INTERFACE ---
+        setUsers(users.map(u => 
+          u.id === user.id ? { ...u, is_blocked: false } : u
         ));
+
+        console.log(`Utilisateur ${user.email} débloqué partout.`);
       } catch (err) {
-        alert("Erreur lors du déblocage.");
+        console.error("Erreur déblocage synchronisé:", err);
+        alert("Erreur lors du déblocage. Vérifiez la connexion Firebase.");
       }
     }
   };
-
   if (loading) return <div className="p-10 text-center">Chargement des utilisateurs...</div>;
 
   return (
@@ -93,7 +105,7 @@ const UserManagement = () => {
                 <td className="px-4 py-4 text-center">
                   {user.is_blocked ? (
                     <button
-                      onClick={() => handleUnblock(user.id)}
+                      onClick={() => handleUnblock(user)}
                       className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm transition shadow-sm"
                     >
                       Débloquer
