@@ -766,9 +766,7 @@ onUnmounted(() => { if (map) map.remove(); });
   background: white;
   border-radius: 20px;
   padding: 32px;
-  width: min(320px, calc(100vw - 40px));
-  max-height: calc(100vh - 40px);
-  overflow: auto;
+  width: 320px;
   text-align: center;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
 }
@@ -865,11 +863,8 @@ onUnmounted(() => { if (map) map.remove(); });
   background: white;
   border-radius: 14px;
   padding: 16px;
-  width: min(280px, calc(100vw - 32px));
   min-width: 220px;
   max-width: 280px;
-  max-height: calc(100vh - 140px);
-  overflow: auto;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   z-index: 1500;
   opacity: 0;
@@ -1156,48 +1151,8 @@ onUnmounted(() => { if (map) map.remove(); });
   }
   
   .confirm-popup-content {
-    padding: 24px;
-  }
-
-  .marker-tooltip {
-    min-width: 0;
-    width: calc(100vw - 32px);
+    width: calc(100% - 40px);
     max-width: 320px;
   }
-
-  .tooltip-header {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .tooltip-footer {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
 }
-
-@media (max-width: 360px) {
-  .confirm-actions {
-    flex-direction: column;
-  }
-}
-
-@media (max-height: 560px) {
-  .confirm-popup-content {
-    padding: 20px;
-  }
-
-  .confirm-icon {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 14px;
-  }
-
-  .confirm-icon ion-icon {
-    font-size: 30px;
-  }
-
-  .marker-tooltip {
-    max-height: calc(100vh - 90px);
-  }
-}
+</style>
