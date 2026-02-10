@@ -13,7 +13,6 @@
           <h1 class="app-name">Safe Roads</h1>
           <p class="app-tagline">Signaler. Protéger. Améliorer.</p>
         </div>
-
         <!-- Formulaire de connexion -->
         <div class="form-card fade-in-up">
           <h2 class="form-title">Bienvenue</h2>

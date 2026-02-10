@@ -3,6 +3,8 @@ import App from './App.vue';
 import router from './router';
 
 import { IonicVue } from '@ionic/vue';
+import { defineCustomElements } from '@ionic/pwa-elements/loader';
+import { initPush } from './services/push-notifications.service';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
@@ -22,6 +24,9 @@ import '@ionic/vue/css/display.css';
 
 /* Theme variables */
 import './assets/styles/theme.css';
+
+defineCustomElements(window);
+initPush();
 
 const app = createApp(App)
   .use(IonicVue)

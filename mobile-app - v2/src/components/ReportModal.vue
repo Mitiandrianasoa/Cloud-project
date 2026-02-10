@@ -267,6 +267,26 @@ const showPhotoOptions = async () => {
 // Prendre/sélectionner une photo avec Capacitor Camera
 const takePhoto = async (source: CameraSource) => {
   try {
+    const permissions = await Camera.checkPermissions();
+    const hasCameraPermission = permissions.camera === 'granted' || permissions.camera === 'limited';
+    const hasPhotosPermission = permissions.photos === 'granted' || permissions.photos === 'limited';
+
+    if (source === CameraSource.Camera && !hasCameraPermission) {
+      const requested = await Camera.requestPermissions({ permissions: ['camera'] });
+      if (requested.camera !== 'granted' && requested.camera !== 'limited') {
+        await showError('Permission caméra refusée');
+        return;
+      }
+    }
+
+    if (source === CameraSource.Photos && !hasPhotosPermission) {
+      const requested = await Camera.requestPermissions({ permissions: ['photos'] });
+      if (requested.photos !== 'granted' && requested.photos !== 'limited') {
+        await showError('Permission galerie refusée');
+        return;
+      }
+    }
+
     const photo = await Camera.getPhoto({
       quality: 80,
       allowEditing: false,
@@ -287,21 +307,16 @@ const takePhoto = async (source: CameraSource) => {
       await toast.present();
     }
   } catch (error: any) {
-    // User cancelled ou permission denied
-    if (error.message !== 'User cancelled photos app') {
-      console.error('Camera error:', error);
-      // Fallback avec placeholder pour dev/web
-      const placeholderPhoto = `https://via.placeholder.com/400x400/6366f1/ffffff?text=Photo+${formData.value.photos.length + 1}`;
-      formData.value.photos.push(placeholderPhoto);
-      
-      const toast = await toastController.create({
-        message: 'Photo ajoutée (mode simulation) 📸',
-        duration: 1500,
-        color: 'tertiary',
-        position: 'top'
-      });
-      await toast.present();
-    }
+    const msg = typeof error?.message === 'string' ? error.message : '';
+    const cancelled =
+      msg.includes('User cancelled') ||
+      msg.includes('cancel') ||
+      error === 'User cancelled photos app';
+
+    if (cancelled) return;
+
+    console.error('Camera error:', error);
+    await showError("Impossible d'ouvrir la caméra");
   }
 };
 
