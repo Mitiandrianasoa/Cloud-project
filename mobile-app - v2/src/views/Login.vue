@@ -24,15 +24,13 @@
               <ion-input
                 v-model="email"
                 type="email"
-                placeholder="test@email.com"
+                placeholder="votre@email.com"
                 class="modern-input input-with-icon"
                 :clear-input="true"
-                @ionBlur="validateEmail"
               ></ion-input>
             </div>
             <p v-if="errors.email" class="error-text">
-              <ion-icon :icon="alertCircleOutline"></ion-icon>
-              {{ errors.email }}
+              <ion-icon :icon="alertCircleOutline"></ion-icon> {{ errors.email }}
             </p>
           </div>
 
@@ -43,19 +41,17 @@
               <ion-input
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
-                placeholder="test123"
+                placeholder="••••••••"
                 class="modern-input input-with-icon"
-                @ionBlur="validatePassword"
               ></ion-input>
               <ion-icon
                 :icon="showPassword ? eyeOffOutline : eyeOutline"
-                @click="togglePassword"
+                @click="showPassword = !showPassword"
                 class="password-toggle-icon"
               ></ion-icon>
             </div>
             <p v-if="errors.password" class="error-text">
-              <ion-icon :icon="alertCircleOutline"></ion-icon>
-              {{ errors.password }}
+              <ion-icon :icon="alertCircleOutline"></ion-icon> {{ errors.password }}
             </p>
           </div>
 
@@ -64,22 +60,13 @@
               <ion-checkbox v-model="rememberMe" class="modern-checkbox"></ion-checkbox>
               <label class="checkbox-label">Se souvenir de moi</label>
             </div>
-            <a @click="forgotPassword" class="forgot-link">Mot de passe oublié ?</a>
-          </div>
-
-          <div class="stay-logged-out-wrapper">
-            <ion-checkbox v-model="stayLoggedOut" class="modern-checkbox"></ion-checkbox>
-            <div class="stay-logged-out-info">
-              <label class="checkbox-label">Rester déconnecté</label>
-              <span class="checkbox-hint">Ne pas enregistrer la session sur cet appareil</span>
-            </div>
+            <a @click="forgotPassword" class="forgot-link">Oublié ?</a>
           </div>
 
           <div v-if="error" class="message-box error-box fade-in">
             <ion-icon :icon="closeCircleOutline"></ion-icon>
             <span>{{ error }}</span>
           </div>
-
           <div v-if="success" class="message-box success-box fade-in">
             <ion-icon :icon="checkmarkCircleOutline"></ion-icon>
             <span>{{ success }}</span>
@@ -91,19 +78,13 @@
             @click="login"
             :disabled="isLoading"
           >
-            <ion-spinner v-if="isLoading" name="crescent" class="btn-spinner"></ion-spinner>
-            <ion-icon v-else slot="start" :icon="logInOutline"></ion-icon>
-            {{ isLoading ? 'Connexion en cours...' : 'Se connecter' }}
+            <ion-spinner v-if="isLoading" name="crescent"></ion-spinner>
+            <span v-else>Se connecter</span>
           </ion-button>
 
           <div class="signup-section">
-            <p>Pas encore de compte ?</p>
-            <a @click="goToRegister" class="signup-link">Créer un compte</a>
+            <p>Pas de compte ? <a @click="router.push('/register')" class="signup-link">S'inscrire</a></p>
           </div>
-        </div>
-
-        <div class="login-footer fade-in">
-          <p>© 2026 Safe Roads - Tous droits réservés</p>
         </div>
       </div>
     </ion-content>
@@ -111,217 +92,140 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  IonPage,
-  IonButton,
-  IonContent,
-  IonInput,
-  IonIcon,
-  IonCheckbox,
-  IonSpinner,
-  alertController,
-  loadingController
+  IonPage, IonButton, IonContent, IonInput, IonIcon, IonCheckbox, IonSpinner,
+  alertController, loadingController
 } from '@ionic/vue';
 import {
-  eyeOutline,
-  eyeOffOutline,
-  logInOutline,
-  mailOutline,
-  lockClosedOutline,
-  alertCircleOutline,
-  closeCircleOutline,
-  checkmarkCircleOutline,
-  shieldCheckmarkOutline
+  eyeOutline, eyeOffOutline, mailOutline, lockClosedOutline, alertCircleOutline,
+  closeCircleOutline, checkmarkCircleOutline, shieldCheckmarkOutline
 } from 'ionicons/icons';
 
-// Firebase imports
 import { auth, db } from '../firebase/config';
 import { 
-  signInWithEmailAndPassword, 
-  sendPasswordResetEmail, 
-  setPersistence, 
-  browserSessionPersistence, 
-  browserLocalPersistence 
+  signInWithEmailAndPassword, sendPasswordResetEmail, setPersistence, 
+  browserSessionPersistence, browserLocalPersistence 
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const router = useRouter();
 
-// État du formulaire
+// États
 const email = ref('');
 const password = ref('');
 const rememberMe = ref(false);
-const stayLoggedOut = ref(false);
 const showPassword = ref(false);
 const isLoading = ref(false);
 const error = ref('');
 const success = ref('');
-
-// Sécurité
 const attempts = ref(0);
 const maxAttempts = 3;
+const errors = ref({ email: '', password: '' });
 
-const errors = ref({
-  email: '',
-  password: ''
+// --- FIX : Réinitialisation au changement d'email (Le compte A n'impacte plus le B) ---
+watch(email, () => {
+  attempts.value = 0;
+  error.value = '';
+  errors.value.email = '';
 });
-
-const togglePassword = () => {
-  showPassword.value = !showPassword.value;
-};
-
-const validateEmail = () => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email.value) {
-    errors.value.email = 'Email requis';
-  } else if (!emailRegex.test(email.value)) {
-    errors.value.email = 'Email invalide';
-  } else {
-    errors.value.email = '';
-  }
-};
-
-const validatePassword = () => {
-  if (!password.value) {
-    errors.value.password = 'Mot de passe requis';
-  } else {
-    errors.value.password = '';
-  }
-};
 
 const validateForm = () => {
   let isValid = true;
-  error.value = '';
-  success.value = '';
-
-  validateEmail();
-  if (errors.value.email) isValid = false;
-
-  validatePassword();
-  if (errors.value.password) isValid = false;
-
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.value)) {
+    errors.value.email = 'Email invalide';
+    isValid = false;
+  }
+  if (password.value.length < 1) {
+    errors.value.password = 'Mot de passe requis';
+    isValid = false;
+  }
   return isValid;
 };
 
 const login = async () => {
-  error.value = '';
-  success.value = '';
-  
-  if (!validateForm()) {
-    error.value = 'Veuillez corriger les erreurs dans le formulaire';
-    return;
-  }
+  if (!validateForm()) return;
 
   const userEmailKey = email.value.toLowerCase().replace(/\./g, '_');
 
-  // 1. Vérification préalable du blocage
+  // 1. Vérifier si déjà banni
   try {
     const blockRef = doc(db, "blacklisted_users", userEmailKey);
     const blockSnap = await getDoc(blockRef);
-
     if (blockSnap.exists() && blockSnap.data().is_blocked) {
-      error.value = "🚫 Compte suspendu pour des raisons de sécurité.";
+      error.value = "🚫 Compte suspendu pour sécurité.";
       return;
     }
-  } catch (err) {
-    console.warn("Vérification cloud ignorée (mode hors-ligne)");
-  }
+  } catch (e) { console.warn("Check blacklist offline"); }
 
+  // Vérification locale
   if (attempts.value >= maxAttempts) {
-    error.value = "Trop de tentatives. Ce compte est verrouillé.";
+    error.value = "Trop d'échecs. Changez d'email ou patientez.";
     return;
   }
 
-  // --- DÉBUT DU CHARGEMENT ---
   isLoading.value = true;
-  const loading = await loadingController.create({
-    message: 'Authentification...',
-    spinner: 'crescent'
-  });
+  const loading = await loadingController.create({ message: 'Connexion...', spinner: 'crescent' });
   await loading.present();
 
   try {
-    if (stayLoggedOut.value) {
-      await setPersistence(auth, browserSessionPersistence);
-    } else {
-      await setPersistence(auth, rememberMe.value ? browserLocalPersistence : browserSessionPersistence);
-    }
+    const pMode = rememberMe.value ? browserLocalPersistence : browserSessionPersistence;
+    await setPersistence(auth, pMode);
 
     await signInWithEmailAndPassword(auth, email.value, password.value);
 
-    // SUCCÈS
+    // Succès
     attempts.value = 0;
-    success.value = 'Connexion réussie ! Redirection...';
-    
+    success.value = 'Connexion réussie !';
     await loading.dismiss();
-    isLoading.value = false; // <--- FIX : On arrête le spinner ici aussi
-
-    setTimeout(() => {
-      router.push('/map');
-    }, 1500);
+    isLoading.value = false;
+    setTimeout(() => router.push('/map'), 1200);
 
   } catch (err: any) {
     await loading.dismiss();
-    isLoading.value = false; // <--- FIX : On arrête le spinner en cas d'erreur
+    isLoading.value = false;
     attempts.value++;
 
     if (attempts.value >= maxAttempts) {
+      // --- LOGIQUE ANTI-BAN EMAILS INEXISTANTS ---
       try {
-        await setDoc(doc(db, "blacklisted_users", userEmailKey), {
-          email: email.value,
-          reason: "Sécurité : 3 échecs consécutifs (Application Mobile)",
-          blocked_at: new Date().toISOString(),
-          is_blocked: true
-        });
-        error.value = "⚠️ Compte bloqué après 3 tentatives infructueuses.";
+        // On vérifie si l'utilisateur existe dans ta collection 'users'
+        const userDoc = await getDoc(doc(db, "users", userEmailKey));
+        
+        if (userDoc.exists()) {
+          // L'email existe, donc c'est une attaque ou un oubli répété -> BAN
+          await setDoc(doc(db, "blacklisted_users", userEmailKey), {
+            email: email.value,
+            reason: "3 tentatives erronées",
+            blocked_at: new Date().toISOString(),
+            is_blocked: true
+          });
+          error.value = "⚠️ Sécurité : Ce compte a été verrouillé.";
+        } else {
+          // L'email n'existe pas dans la base -> On ne blacklist pas !
+          error.value = "Identifiants incorrects.";
+        }
       } catch (dbErr) {
-        error.value = "Accès refusé suite à plusieurs erreurs.";
+        error.value = "Erreur d'authentification.";
       }
     } else {
-      let msg = "Identifiants incorrects.";
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        msg = `Email ou mot de passe incorrect (${attempts.value}/${maxAttempts})`;
-      } else if (err.code === 'auth/too-many-requests') {
-        msg = "Trop de tentatives. Réessayez plus tard.";
-      }
-      error.value = msg;
+      error.value = `Identifiants incorrects (${attempts.value}/${maxAttempts})`;
     }
   }
 };
 
 const forgotPassword = async () => {
-  if (!email.value) {
-    error.value = 'Veuillez entrer votre email d\'abord';
-    return;
-  }
-
-  const alert = await alertController.create({
-    header: 'Réinitialisation',
-    message: `Envoyer un lien à : ${email.value} ?`,
-    buttons: [
-      { text: 'Annuler', role: 'cancel' },
-      {
-        text: 'Envoyer',
-        handler: async () => {
-          try {
-            await sendPasswordResetEmail(auth, email.value);
-            success.value = 'Email envoyé !';
-          } catch (err: any) {
-            error.value = 'Erreur lors de l\'envoi';
-          }
-        }
-      }
-    ]
-  });
-  await alert.present();
-};
-
-const goToRegister = () => {
-  router.push('/register');
+  if (!email.value) { error.value = "Entrez votre email"; return; }
+  try {
+    await sendPasswordResetEmail(auth, email.value);
+    success.value = "Email de récupération envoyé !";
+  } catch (e) { error.value = "Erreur lors de l'envoi"; }
 };
 </script>
+
+
 
 <style scoped>
 /* Les styles restent identiques à votre version originale */
